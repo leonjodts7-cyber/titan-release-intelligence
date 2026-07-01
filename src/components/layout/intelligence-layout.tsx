@@ -4,6 +4,7 @@ import { Sidebar, Menu } from "@/components/layout/sidebar";
 import { DemoModeBanner } from "@/components/layout/demo-banner";
 import { GlobalSearch } from "@/components/intelligence/global-search";
 import { LiveActivityPanel } from "@/components/intelligence/live-activity-panel";
+import { CommandCenterBar, type CommandCenterMetrics } from "@/components/intelligence/command-center-bar";
 import type { ActivityFeedItem } from "@/lib/data/activity-feed";
 import { useState } from "react";
 
@@ -11,9 +12,10 @@ interface IntelligenceLayoutProps {
   children: React.ReactNode;
   activityFeed?: ActivityFeedItem[];
   showFeed?: boolean;
+  commandCenterMetrics?: CommandCenterMetrics;
 }
 
-export function IntelligenceLayout({ children, activityFeed, showFeed = true }: IntelligenceLayoutProps) {
+export function IntelligenceLayout({ children, activityFeed, showFeed = true, commandCenterMetrics }: IntelligenceLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -31,7 +33,14 @@ export function IntelligenceLayout({ children, activityFeed, showFeed = true }: 
         </header>
         <DemoModeBanner />
         <div className="flex flex-1 min-h-0">
-          <main className="flex-1 overflow-auto min-w-0">{children}</main>
+          <main className="flex-1 overflow-auto min-w-0">
+            {commandCenterMetrics && (
+              <div className="sticky top-0 z-20 bg-titan-bg/95 backdrop-blur border-b border-titan-border/60">
+                <CommandCenterBar metrics={commandCenterMetrics} />
+              </div>
+            )}
+            {children}
+          </main>
           {showFeed && (
             <div className="hidden xl:block w-72 shrink-0">
               <LiveActivityPanel initialItems={activityFeed} />

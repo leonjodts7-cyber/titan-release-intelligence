@@ -3,13 +3,12 @@ import { getReleases } from "@/lib/data/releases";
 import { getSourceAdapters, getScanJobs, getFailedSources } from "@/lib/data/sources";
 import { getNotifications } from "@/lib/data/notifications";
 import { getActivityFeed } from "@/lib/data/activity-feed";
-import { isSupabaseConfigured } from "@/lib/supabase/client-factory";
 import {
   enrichReleases, getMustWatch, getTopResaleOpportunities, sortByRoi,
   getTotalProfitOpportunity, getTcgOpportunities, getSneakerDrops, sortByOpportunity,
 } from "@/lib/data/enrich-releases";
 import { IntelligenceLayout } from "@/components/layout/intelligence-layout";
-import { CommandCenterBar } from "@/components/intelligence/command-center-bar";
+import { buildCommandCenterMetrics } from "@/lib/data/dashboard-metrics";
 import { IntelStat } from "@/components/intelligence/intel-stat";
 import { ReleaseCard } from "@/components/releases/release-card";
 import { releaseIntelligenceService } from "@/services/release-intelligence.service";
@@ -36,42 +35,23 @@ export default async function DashboardPage() {
   const profitPool = getTotalProfitOpportunity(releases);
   const top = ranked[0];
   const topBrief = top ? releaseIntelligenceService.analyze(top).full_brief : "";
-
-  const categoryCounts: Record<string, number> = {};
-  releases.forEach((r) => {
-    const c = r.release_categories?.name ?? "Other";
-    categoryCounts[c] = (categoryCounts[c] ?? 0) + 1;
+  const commandCenterMetrics = buildCommandCenterMetrics({
+    sources,
+    scans,
+    notifications,
+    releases,
+    profitPool,
+    topRoi: topRoi[0]?.expected_roi_mid ?? 0,
   });
-  const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
-  const topEvent = releases.filter((r) => r.release_type === "ticket").sort((a, b) => b.opportunity_score - a.opportunity_score)[0]?.title ?? "—";
-  const topProduct = releases.filter((r) => r.release_type !== "ticket").sort((a, b) => b.opportunity_score - a.opportunity_score)[0]?.title ?? "—";
 
-  const critical = releases.filter((r) =>
-    r.opportunity_action === "TOP OPPORTUNITY" || r.opportunity_action === "MUST WATCH"
-  ).length;
+  const critical = commandCenterMetrics.criticalCount;
+  const avgRoi = releases.length
+    ? Math.round(releases.reduce((s, r) => s + (r.expected_roi_mid ?? 0), 0) / releases.length)
+    : 0;
 
   return (
-    <IntelligenceLayout activityFeed={feed}>
+    <IntelligenceLayout activityFeed={feed} commandCenterMetrics={commandCenterMetrics}>
       <div className="p-3 md:p-4 space-y-3 max-w-[1600px]">
-        <CommandCenterBar metrics={{
-          sourcesOnline: sources.filter((s) => s.enabled && !s.last_error).length,
-          sourcesTotal: sources.filter((s) => s.enabled).length,
-          pipelineActive: true,
-          aiActive: Boolean(process.env.OPENAI_API_KEY),
-          dbConnected: isSupabaseConfigured(),
-          unreadNotifications: notifications.filter((n) => n.status !== "read").length,
-          scansToday: scans.filter((s) => s.started_at && new Date(s.started_at) > new Date(Date.now() - 86400000)).length,
-          changesToday: releases.filter((r) => r.last_changed_at && new Date(r.last_changed_at) > new Date(Date.now() - 86400000)).length,
-          criticalCount: critical,
-          opportunityCount: releases.filter((r) => r.opportunity_action !== "IGNORE").length,
-          profitPool,
-          topRoi: topRoi[0]?.expected_roi_mid ?? 0,
-          topCategory,
-          topEvent,
-          topProduct,
-          lastScanAt: scans[0]?.started_at ?? null,
-        }} />
-
         {topBrief && (
           <div className="intel-card border-l-2 border-l-fuchsia-500/60">
             <div className="intel-section-title mb-1">Top Intelligence Brief</div>
@@ -82,7 +62,7 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-4 md:grid-cols-8 gap-1.5">
           <IntelStat label="Tracked" value={releases.length} compact />
           <IntelStat label="Critical" value={critical} trend={critical > 0 ? "up" : "neutral"} compact />
-          <IntelStat label="Avg ROI" value={`${Math.round(releases.reduce((s, r) => s + (r.expected_roi_mid ?? 0), 0) / releases.length)}%`} compact />
+          <IntelStat label="Avg ROI" value={`${avgRoi}%`} compact />
           <IntelStat label="Profit Pool" value={`€${Math.round(profitPool / 1000)}k`} trend="up" compact />
           <IntelStat label="Momentum" value={top?.momentum_score ?? "—"} compact />
           <IntelStat label="AI Conf." value={`${top?.ai_confidence ?? "—"}%`} compact />

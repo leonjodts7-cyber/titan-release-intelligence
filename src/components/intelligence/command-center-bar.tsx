@@ -28,36 +28,65 @@ export interface CommandCenterMetrics {
   lastScanAt: string | null;
 }
 
-export function CommandCenterBar({ metrics }: { metrics: CommandCenterMetrics }) {
-  const [nextScan, setNextScan] = useState("—");
+export const DEFAULT_COMMAND_CENTER_METRICS: CommandCenterMetrics = {
+  sourcesOnline: 0,
+  sourcesTotal: 0,
+  pipelineActive: false,
+  aiActive: false,
+  dbConnected: false,
+  unreadNotifications: 0,
+  scansToday: 0,
+  changesToday: 0,
+  criticalCount: 0,
+  opportunityCount: 0,
+  profitPool: 0,
+  topRoi: 0,
+  topCategory: "—",
+  topEvent: "—",
+  topProduct: "—",
+  lastScanAt: null,
+};
+
+function truncate(value: string | null | undefined, max = 18): string {
+  const text = value?.trim() || "—";
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+export function CommandCenterBar({ metrics }: { metrics?: Partial<CommandCenterMetrics> }) {
+  const m = { ...DEFAULT_COMMAND_CENTER_METRICS, ...metrics };
+  const [nextScan, setNextScan] = useState("…");
+  const [lastScanLabel, setLastScanLabel] = useState("—");
 
   useEffect(() => {
     const tick = () => {
       const cron = 15;
-      const m = new Date().getMinutes();
-      const s = new Date().getSeconds();
-      setNextScan(`${cron - (m % cron)}m ${60 - s}s`);
+      const mins = new Date().getMinutes();
+      const secs = new Date().getSeconds();
+      setNextScan(`${cron - (mins % cron)}m ${60 - secs}s`);
+      setLastScanLabel(
+        m.lastScanAt ? formatDistanceToNow(new Date(m.lastScanAt), { addSuffix: true }) : "—"
+      );
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [m.lastScanAt]);
 
   const tiles = [
-    { icon: Radio, label: "Sources", value: `${metrics.sourcesOnline}/${metrics.sourcesTotal}`, href: "/dashboard/sources" },
-    { icon: Activity, label: "Pipeline", value: metrics.pipelineActive ? "Live" : "Idle", ok: metrics.pipelineActive },
-    { icon: Brain, label: "AI", value: metrics.aiActive ? "Active" : "Rules", ok: metrics.aiActive },
-    { icon: Database, label: "Database", value: metrics.dbConnected ? "Connected" : "Demo", ok: metrics.dbConnected },
-    { icon: Bell, label: "Unread", value: String(metrics.unreadNotifications), href: "/dashboard/notifications", alert: metrics.unreadNotifications > 0 },
-    { icon: ScanLine, label: "Scans", value: String(metrics.scansToday), href: "/dashboard/scans" },
-    { icon: Zap, label: "Changes", value: String(metrics.changesToday) },
-    { icon: AlertTriangle, label: "Critical", value: String(metrics.criticalCount), href: "/dashboard/opportunities", alert: metrics.criticalCount > 0 },
-    { icon: TrendingUp, label: "Opportunities", value: String(metrics.opportunityCount), href: "/dashboard/opportunities" },
-    { icon: TrendingUp, label: "Profit Pool", value: `€${Math.round(metrics.profitPool).toLocaleString()}`, href: "/dashboard/opportunities" },
-    { icon: TrendingUp, label: "Top ROI", value: `${metrics.topRoi}%`, href: "/dashboard/opportunities" },
-    { icon: Layers, label: "Top Category", value: metrics.topCategory, href: "/dashboard/analytics" },
-    { icon: Calendar, label: "Top Event", value: metrics.topEvent.slice(0, 18), href: "/dashboard/releases" },
-    { icon: Package, label: "Top Product", value: metrics.topProduct.slice(0, 18), href: "/dashboard/market" },
+    { icon: Radio, label: "Sources", value: `${m.sourcesOnline}/${m.sourcesTotal}`, href: "/dashboard/sources" },
+    { icon: Activity, label: "Pipeline", value: m.pipelineActive ? "Live" : "Idle", ok: m.pipelineActive },
+    { icon: Brain, label: "AI", value: m.aiActive ? "Active" : "Rules", ok: m.aiActive },
+    { icon: Database, label: "Database", value: m.dbConnected ? "Connected" : "Demo", ok: m.dbConnected },
+    { icon: Bell, label: "Unread", value: String(m.unreadNotifications), href: "/dashboard/notifications", alert: m.unreadNotifications > 0 },
+    { icon: ScanLine, label: "Scans", value: String(m.scansToday), href: "/dashboard/scans" },
+    { icon: Zap, label: "Changes", value: String(m.changesToday) },
+    { icon: AlertTriangle, label: "Critical", value: String(m.criticalCount), href: "/dashboard/opportunities", alert: m.criticalCount > 0 },
+    { icon: TrendingUp, label: "Opportunities", value: String(m.opportunityCount), href: "/dashboard/opportunities" },
+    { icon: TrendingUp, label: "Profit Pool", value: `€${Math.round(m.profitPool).toLocaleString()}`, href: "/dashboard/opportunities" },
+    { icon: TrendingUp, label: "Top ROI", value: `${m.topRoi}%`, href: "/dashboard/opportunities" },
+    { icon: Layers, label: "Top Category", value: truncate(m.topCategory), href: "/dashboard/analytics" },
+    { icon: Calendar, label: "Top Event", value: truncate(m.topEvent), href: "/dashboard/releases" },
+    { icon: Package, label: "Top Product", value: truncate(m.topProduct), href: "/dashboard/market" },
   ];
 
   return (
@@ -65,7 +94,7 @@ export function CommandCenterBar({ metrics }: { metrics: CommandCenterMetrics })
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-titan-border/60 text-[10px] text-zinc-500 font-mono">
         <span>TITAN INTELLIGENCE · LIVE</span>
         <span>
-          Last scan {metrics.lastScanAt ? formatDistanceToNow(new Date(metrics.lastScanAt), { addSuffix: true }) : "—"}
+          Last scan {lastScanLabel}
           {" · "}Next {nextScan}
         </span>
       </div>
