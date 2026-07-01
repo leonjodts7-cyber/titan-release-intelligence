@@ -8,6 +8,7 @@ import { changeDetectionService } from "./change-detection.service";
 import { notificationService } from "./notification.service";
 import { calendarService } from "./calendar.service";
 import { auditLogService } from "./audit-log.service";
+import { watchlistMatcherService } from "./watchlist-matcher.service";
 import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
 import type { Release } from "@/types";
@@ -26,6 +27,28 @@ export interface PipelineResult {
   itemsUpdated: number;
   itemsSkipped: number;
   errors: string[];
+  mode?: "live" | "mock";
+}
+
+async function writeScanLog(
+  supabase: ReturnType<typeof getClient>,
+  jobId: string | null,
+  sourceAdapterId: string,
+  level: string,
+  message: string,
+  metadata?: Record<string, unknown>
+) {
+  try {
+    await supabase.from("scan_logs").insert({
+      scan_job_id: jobId,
+      source_adapter_id: sourceAdapterId,
+      level,
+      message,
+      metadata: metadata ?? {},
+    });
+  } catch {
+    // continue without log persistence
+  }
 }
 
 export class PipelineOrchestrator {
@@ -58,8 +81,11 @@ export class PipelineOrchestrator {
 
     try {
       // SOURCE SCAN → PARSE → NORMALIZE
-      const { items: rawItems, error } = await sourceScannerService.scanAdapter(sourceAdapter);
+      const { items: rawItems, error, mode } = await sourceScannerService.scanAdapter(sourceAdapter);
+      result.mode = mode;
       if (error) result.errors.push(error);
+      await writeScanLog(supabase, jobId, sourceAdapter.id, error ? "error" : "info",
+        error ?? `Scan mode: ${mode}, found ${rawItems.length} items`, { mode });
 
       const normalized = normalizerService.normalizeAll(rawItems);
       const enriched = enrichmentService.enrichAll(normalized);
@@ -156,6 +182,7 @@ export class PipelineOrchestrator {
             );
           }
 
+          await watchlistMatcherService.processRelease(created as Release, "new_release");
           await calendarService.addReleaseEvents(created as Release);
         }
       }
@@ -205,6 +232,10 @@ export class PipelineOrchestrator {
             await notificationService.notifyRelease(
               { ...existingRelease, ...updates } as Release,
               summary
+            );
+            await watchlistMatcherService.processRelease(
+              { ...existingRelease, ...updates } as Release,
+              "update"
             );
           }
         }

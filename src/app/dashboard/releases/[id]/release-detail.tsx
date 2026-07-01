@@ -1,28 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ExternalLink, RefreshCw, Zap, MapPin,
-  Calendar, DollarSign, Clock, AlertTriangle,
+  Calendar, DollarSign, Clock, AlertTriangle, Eye, Radio,
 } from "lucide-react";
-import type { Release } from "@/types";
+import type { Release, ReleaseUpdate, ReleaseScore } from "@/types";
 import { cn, formatCountdown, formatDate, formatPrice, priorityColor } from "@/lib/utils";
 
-const MOCK_UPDATES = [
-  { id: "1", update_type: "presale_added", summary: "Presale date announced", detected_at: new Date(Date.now() - 86400000).toISOString(), importance_score: 85 },
-  { id: "2", update_type: "official_link_added", summary: "Official link now live", detected_at: new Date(Date.now() - 172800000).toISOString(), importance_score: 75 },
-];
+interface ReleaseDetailProps {
+  release: Release;
+}
 
-const MOCK_SCORE = {
-  short_summary: "High-demand release with strong sellout probability based on category, artist popularity, and venue capacity.",
-  recommended_action: "Set alerts immediately. Prepare accounts on official platform. Monitor for presale announcements.",
-  risk_notes: "High bot activity expected. Use only official sources for purchases.",
-};
-
-export function ReleaseDetail({ release }: { release: Release }) {
+export function ReleaseDetail({ release }: ReleaseDetailProps) {
   const [rescoring, setRescoring] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [scores, setScores] = useState(release);
+  const [updates, setUpdates] = useState<ReleaseUpdate[]>([]);
+  const [aiAnalysis, setAiAnalysis] = useState<Partial<ReleaseScore> | null>(null);
+  const [sourceReliability, setSourceReliability] = useState<{
+    name: string; reliability_score: number; last_error: string | null;
+  } | null>(null);
+  const [watchlisted, setWatchlisted] = useState(false);
+  const [adminNote, setAdminNote] = useState("");
+
+  useEffect(() => {
+    async function load() {
+      const res = await fetch(`/api/releases/${release.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.updates?.length) setUpdates(data.updates);
+        if (data.scores) setAiAnalysis(data.scores);
+        if (data.sourceReliability) setSourceReliability(data.sourceReliability);
+      }
+    }
+    load();
+  }, [release.id]);
 
   const handleRescore = async () => {
     setRescoring(true);
@@ -31,14 +45,48 @@ export function ReleaseDetail({ release }: { release: Release }) {
       if (res.ok) {
         const data = await res.json();
         setScores({ ...scores, ...data.scores });
+        setAiAnalysis(data.scores);
       }
     } finally {
       setRescoring(false);
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    const res = await fetch(`/api/releases/${release.id}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.updates?.length) setUpdates(data.updates);
+      if (data.scores) setAiAnalysis(data.scores);
+      if (data.sourceReliability) setSourceReliability(data.sourceReliability);
+    }
+    setRefreshing(false);
+  };
+
+  const handleWatchlist = async () => {
+    const res = await fetch("/api/watchlists/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ releaseId: release.id }),
+    });
+    if (res.ok) setWatchlisted(true);
+  };
+
   const location = [release.cities?.name, release.countries?.name].filter(Boolean).join(", ");
   const eventDate = release.release_starts_at ?? release.presale_starts_at;
+
+  const displayUpdates = updates.length > 0 ? updates : [
+    { id: "m1", update_type: "presale_added" as const, summary: "Presale date announced", detected_at: new Date(Date.now() - 86400000).toISOString(), importance_score: 85, release_id: release.id, old_value: null, new_value: null, source_url: null, notified: false, created_at: "" },
+  ];
+
+  const analysis = aiAnalysis ?? {
+    short_summary: `${release.title} classified as ${scores.priority_level} priority.`,
+    recommended_action: scores.priority_level === "EXTREME"
+      ? "Set alerts immediately. Prepare accounts on official platform."
+      : "Add to watchlist and monitor for updates.",
+    risk_notes: "Use only official sources for purchases.",
+  };
 
   return (
     <div className="p-6 max-w-5xl">
@@ -69,9 +117,7 @@ export function ReleaseDetail({ release }: { release: Release }) {
         </div>
 
         <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-titan-surface border border-titan-border min-w-[180px]">
-          <div className="text-4xl font-mono font-bold text-titan-accent">
-            {formatCountdown(eventDate)}
-          </div>
+          <div className="text-4xl font-mono font-bold text-titan-accent">{formatCountdown(eventDate)}</div>
           <div className="text-xs text-zinc-500 uppercase mt-1">Countdown</div>
           <div className="text-sm text-zinc-400 mt-2">{formatDate(eventDate)}</div>
         </div>
@@ -95,59 +141,63 @@ export function ReleaseDetail({ release }: { release: Release }) {
 
       <div className="flex flex-wrap gap-3 mb-8">
         {release.official_url && (
-          <a
-            href={release.official_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-titan-accent hover:bg-indigo-500 text-white rounded-lg text-sm font-medium"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Official Link
+          <a href={release.official_url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-titan-accent hover:bg-indigo-500 text-white rounded-lg text-sm font-medium">
+            <ExternalLink className="w-4 h-4" /> Official Link
           </a>
         )}
         {release.source_url && (
-          <a
-            href={release.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 border border-titan-border hover:border-zinc-600 rounded-lg text-sm"
-          >
+          <a href={release.source_url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-titan-border hover:border-zinc-600 rounded-lg text-sm">
             Source
           </a>
         )}
-        <button
-          onClick={handleRescore}
-          disabled={rescoring}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-titan-border hover:border-zinc-600 rounded-lg text-sm disabled:opacity-50"
-        >
-          <RefreshCw className={cn("w-4 h-4", rescoring && "animate-spin")} />
-          Rescore AI
+        <button onClick={handleRescore} disabled={rescoring}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-titan-border hover:border-zinc-600 rounded-lg text-sm disabled:opacity-50">
+          <RefreshCw className={cn("w-4 h-4", rescoring && "animate-spin")} /> Rescore AI
+        </button>
+        <button onClick={handleRefresh} disabled={refreshing}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-titan-border hover:border-zinc-600 rounded-lg text-sm disabled:opacity-50">
+          <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} /> Refresh
+        </button>
+        <button onClick={handleWatchlist}
+          className={cn("inline-flex items-center gap-2 px-4 py-2 border rounded-lg text-sm",
+            watchlisted ? "border-green-500/30 text-green-400" : "border-titan-border hover:border-zinc-600")}>
+          <Eye className="w-4 h-4" /> {watchlisted ? "Watchlisted" : "Add to Watchlist"}
         </button>
       </div>
+
+      {sourceReliability && (
+        <div className="mb-6 p-3 rounded-lg bg-titan-surface border border-titan-border flex items-center gap-3 text-sm">
+          <Radio className="w-4 h-4 text-zinc-500" />
+          <span>Source: {sourceReliability.name}</span>
+          <span className="text-zinc-500">Reliability {sourceReliability.reliability_score}%</span>
+          {sourceReliability.last_error && (
+            <span className="text-yellow-500 text-xs">{sourceReliability.last_error}</span>
+          )}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           <section className="p-4 rounded-xl bg-titan-surface border border-titan-border">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              AI Analysis
+              <Zap className="w-4 h-4" /> AI Analysis
             </h2>
-            <p className="text-sm text-zinc-300 mb-3">{MOCK_SCORE.short_summary}</p>
+            <p className="text-sm text-zinc-300 mb-3">{analysis.short_summary}</p>
             <div className="p-3 rounded-lg bg-titan-bg border border-titan-border mb-3">
               <div className="text-xs text-zinc-500 uppercase mb-1">Recommended Action</div>
-              <p className="text-sm">{MOCK_SCORE.recommended_action}</p>
+              <p className="text-sm">{analysis.recommended_action}</p>
             </div>
             <div className="flex items-start gap-2 text-sm text-yellow-500/80">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              {MOCK_SCORE.risk_notes}
+              {analysis.risk_notes}
             </div>
           </section>
 
           <section className="p-4 rounded-xl bg-titan-surface border border-titan-border">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3">Details</h2>
-            {release.description && (
-              <p className="text-sm text-zinc-400 mb-4">{release.description}</p>
-            )}
+            {release.description && <p className="text-sm text-zinc-400 mb-4">{release.description}</p>}
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-zinc-500 flex items-center gap-1"><DollarSign className="w-3 h-3" /> Price</dt>
@@ -165,24 +215,28 @@ export function ReleaseDetail({ release }: { release: Release }) {
                   <dd>{formatDate(release.general_sale_starts_at)}</dd>
                 </div>
               )}
-              {release.capacity_estimate && (
-                <div className="flex justify-between">
-                  <dt className="text-zinc-500">Capacity</dt>
-                  <dd>{release.capacity_estimate.toLocaleString()}</dd>
-                </div>
-              )}
             </dl>
+          </section>
+
+          <section className="p-4 rounded-xl bg-titan-surface border border-titan-border">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3">Admin Notes</h2>
+            <textarea
+              value={adminNote}
+              onChange={(e) => setAdminNote(e.target.value)}
+              placeholder="Add internal notes..."
+              className="w-full p-3 bg-titan-bg border border-titan-border rounded-lg text-sm resize-none h-24 focus:outline-none focus:border-titan-accent"
+            />
           </section>
         </div>
 
         <section className="p-4 rounded-xl bg-titan-surface border border-titan-border">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3">Update Timeline</h2>
           <div className="space-y-3">
-            {MOCK_UPDATES.map((update) => (
+            {displayUpdates.map((update) => (
               <div key={update.id} className="flex gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-titan-accent mt-1.5 shrink-0" />
                 <div>
-                  <div className="text-zinc-300">{update.summary}</div>
+                  <div className="text-zinc-300">{update.summary ?? update.update_type}</div>
                   <div className="text-xs text-zinc-600 mt-0.5">
                     {formatDate(update.detected_at)} · Importance {update.importance_score}
                   </div>

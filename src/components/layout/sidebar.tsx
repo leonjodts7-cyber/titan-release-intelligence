@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, Calendar, Bell, Eye, Radio,
-  ScanLine, Shield, Search, Menu, X,
+  ScanLine,   Shield, Search, Menu, X, Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ const navItems = [
   { href: "/dashboard/sources", label: "Sources", icon: Radio },
   { href: "/dashboard/scans", label: "Scans", icon: ScanLine },
   { href: "/dashboard/admin", label: "Admin", icon: Shield },
+  { href: "/dashboard/admin/setup", label: "Setup", icon: Settings },
 ];
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose?: () => void }) {

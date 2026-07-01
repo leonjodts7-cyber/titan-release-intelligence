@@ -1,27 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { notificationService } from "@/services/notification.service";
-import { getMockReleases } from "@/lib/data/releases";
+import type { NotificationChannel } from "@/types";
 
-export async function POST() {
-  const release = getMockReleases()[0];
+const VALID_CHANNELS: NotificationChannel[] = ["in_app", "discord", "telegram", "email"];
 
-  await notificationService.notifyRelease(
-    release,
-    "Test notification from TITAN admin panel",
-    "in_app"
-  );
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
+  const channel = (body.channel ?? "in_app") as NotificationChannel;
 
-  const discordSent = await notificationService.send({
-    title: "TITAN Test Alert",
-    body: "This is a test notification from the TITAN Release Intelligence OS.",
-    channel: "discord",
-  });
+  if (!VALID_CHANNELS.includes(channel)) {
+    return NextResponse.json({ error: "Invalid channel" }, { status: 400 });
+  }
 
-  return NextResponse.json({
-    message: "Test notification sent",
-    in_app: true,
-    discord: discordSent,
-    telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN),
-    email: Boolean(process.env.RESEND_API_KEY),
-  });
+  const result = await notificationService.testChannel(channel);
+  return NextResponse.json(result);
 }
