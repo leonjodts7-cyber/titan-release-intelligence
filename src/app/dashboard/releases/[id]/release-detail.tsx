@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ExternalLink, RefreshCw, Zap, MapPin, Calendar, Clock,
-  AlertTriangle, Eye, Radio, TrendingUp, CheckSquare, Square, BarChart3,
+  AlertTriangle, Eye, Radio, TrendingUp, CheckSquare, Square, BarChart3, Shield,
 } from "lucide-react";
 import type { ReleaseUpdate, ReleaseScore } from "@/types";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
@@ -13,10 +13,11 @@ import { PriceIntel } from "@/components/releases/price-intel";
 import { ReleaseCard } from "@/components/releases/release-card";
 import { OpportunityBadge } from "@/components/releases/opportunity-badge";
 import { releaseIntelligenceService } from "@/services/release-intelligence.service";
+import { securityIntelligenceService } from "@/services/security-intelligence.service";
 import { MiniChart } from "@/components/intelligence/mini-chart";
 import { IntelStat } from "@/components/intelligence/intel-stat";
 
-const TABS = ["Overview", "Pricing", "Resale", "AI", "Timeline", "Sources", "Market", "Graphs", "History", "Notes", "Checklist", "Related", "Statistics"] as const;
+const TABS = ["Overview", "Pricing", "Resale", "AI", "Security", "Timeline", "Sources", "Market", "Graphs", "History", "Notes", "Checklist", "Related", "Statistics"] as const;
 type Tab = typeof TABS[number];
 
 interface ReleaseDetailProps {
@@ -43,6 +44,7 @@ export function ReleaseDetail({ release, similarReleases = [] }: ReleaseDetailPr
 
   const displayResale = { ...release, ...resale };
   const intel = releaseIntelligenceService.analyze(displayResale);
+  const security = securityIntelligenceService.analyze(displayResale);
   const eventDate = release.release_starts_at ?? release.presale_starts_at;
   const location = [release.cities?.name, release.countries?.name].filter(Boolean).join(", ");
 
@@ -206,6 +208,34 @@ export function ReleaseDetail({ release, similarReleases = [] }: ReleaseDetailPr
             </div>
             <div className="flex items-start gap-2 text-yellow-500/80 text-xs"><AlertTriangle className="w-4 h-4 shrink-0" />{intel.biggest_risks}</div>
             <div className="p-3 rounded-lg bg-titan-accent/10 border border-titan-accent/20 text-xs"><Zap className="w-4 h-4 inline mr-1" />{intel.recommended_action}</div>
+          </div>
+        )}
+
+        {tab === "Security" && (
+          <div className="intel-card space-y-4 text-xs">
+            <div className="flex items-start gap-2 text-zinc-400 border-b border-titan-border pb-3">
+              <Shield className="w-4 h-4 text-titan-accent shrink-0 mt-0.5" />
+              <p>Defensive intelligence only — preparation signals for manual checkout. TITAN does not bypass queues, CAPTCHAs, or bot protection.</p>
+            </div>
+            <p className="text-sm text-zinc-300">{security.risk_summary}</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <IntelStat label="Bot Protection" value={security.bot_protection_level} />
+              <IntelStat label="Queue Expected" value={security.queue_expected ? "Yes" : "No"} />
+              <IntelStat label="Fairness Score" value={`${security.queue_fairness_score}/100`} />
+              <IntelStat label="CAPTCHA Likelihood" value={`${security.captcha_likelihood}%`} />
+              <IntelStat label="Rate Limit Risk" value={`${security.rate_limit_risk}%`} />
+              <IntelStat label="Account Warmup" value={security.account_warmup_recommended ? "Recommended" : "Optional"} />
+            </div>
+            <div>
+              <div className="intel-section-title mb-2">Preparation Notes</div>
+              <ul className="space-y-1.5">
+                {security.preparation_notes.map((note) => (
+                  <li key={note} className="flex gap-2 text-zinc-400">
+                    <span className="text-titan-accent">•</span>{note}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
 

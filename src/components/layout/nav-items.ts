@@ -1,4 +1,4 @@
-import { Zap, LayoutDashboard, TrendingUp, Layers, BarChart3, Search, Calendar, Eye, Bell, Radio, ScanLine, Shield, Settings } from "lucide-react";
+import { Zap, LayoutDashboard, TrendingUp, Layers, BarChart3, Search, Calendar, Eye, Bell, BellRing, Activity, Radio, ScanLine, Shield, Settings } from "lucide-react";
 
 export const navItems = [
   { href: "/dashboard", label: "Intelligence", icon: LayoutDashboard },
@@ -9,7 +9,9 @@ export const navItems = [
   { href: "/dashboard/releases", label: "Releases", icon: Search },
   { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
   { href: "/dashboard/watchlists", label: "Watchlists", icon: Eye },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
+  { href: "/dashboard/alerts", label: "Alerts", icon: BellRing },
+  { href: "/dashboard/notifications", label: "Notifications", icon: Bell, badge: "notifications" as const },
+  { href: "/dashboard/monitoring", label: "Monitoring", icon: Activity },
   { href: "/dashboard/sources", label: "Sources", icon: Radio },
   { href: "/dashboard/scans", label: "Scans", icon: ScanLine },
   { href: "/dashboard/admin", label: "Admin", icon: Shield },

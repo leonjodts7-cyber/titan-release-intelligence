@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSourceAdapters } from "@/lib/data/sources";
+import { getReleases } from "@/lib/data/releases";
+import { enrichReleases } from "@/lib/data/enrich-releases";
+import { evaluateAllAlerts } from "@/lib/data/alert-rules";
 import { pipelineOrchestrator } from "@/services/pipeline.service";
 import { notificationService } from "@/services/notification.service";
 import { scanSchedulerService } from "@/services/scan-scheduler.service";
@@ -46,6 +49,21 @@ export async function POST(request: NextRequest) {
 
   await notificationService.processQueue();
 
+  const releases = enrichReleases(await getReleases());
+  const alertEvents = evaluateAllAlerts(releases);
+  for (const event of alertEvents) {
+    const release = releases.find((r) => r.id === event.release_id);
+    if (release) {
+      await notificationService.send({
+        title: `[Alert] ${event.rule_name}`,
+        body: event.message,
+        releaseId: release.id,
+        channel: "in_app",
+        metadata: { alert_rule: event.rule_id, ...event.metadata },
+      });
+    }
+  }
+
   const failed = results.filter((r) => r.errors.length > 0);
   return NextResponse.json({
     message: "Cron scan completed",
@@ -53,6 +71,7 @@ export async function POST(request: NextRequest) {
     due: adapters.length,
     total: allAdapters.length,
     failed: failed.length,
+    alerts_triggered: alertEvents.length,
     results,
     timestamp: new Date().toISOString(),
   });

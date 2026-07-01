@@ -21,14 +21,46 @@ export function LiveActivityPanel({ initialItems }: { initialItems?: ActivityFee
 
   useEffect(() => {
     if (initialItems) return;
-    fetch("/api/activity-feed")
-      .then((r) => r.json())
-      .then((d) => { setItems(d.items ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-    const id = setInterval(() => {
-      fetch("/api/activity-feed").then((r) => r.json()).then((d) => setItems(d.items ?? [])).catch(() => {});
-    }, 30000);
-    return () => clearInterval(id);
+
+    let es: EventSource | null = null;
+    let pollId: ReturnType<typeof setInterval> | null = null;
+
+    const applyItems = (items: ActivityFeedItem[]) => {
+      setItems(items);
+      setLoading(false);
+    };
+
+    const startPolling = () => {
+      fetch("/api/activity-feed")
+        .then((r) => r.json())
+        .then((d) => applyItems(d.items ?? []))
+        .catch(() => setLoading(false));
+      pollId = setInterval(() => {
+        fetch("/api/activity-feed").then((r) => r.json()).then((d) => applyItems(d.items ?? [])).catch(() => {});
+      }, 30000);
+    };
+
+    try {
+      es = new EventSource("/api/stream/activity");
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.items) applyItems(data.items);
+        } catch { /* ignore malformed */ }
+      };
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        if (!pollId) startPolling();
+      };
+    } catch {
+      startPolling();
+    }
+
+    return () => {
+      es?.close();
+      if (pollId) clearInterval(pollId);
+    };
   }, [initialItems]);
 
   return (
