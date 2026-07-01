@@ -12,9 +12,11 @@ import { cn, formatCountdown, formatDate, formatPrice, priorityColor } from "@/l
 import { PriceIntel } from "@/components/releases/price-intel";
 import { ReleaseCard } from "@/components/releases/release-card";
 import { OpportunityBadge } from "@/components/releases/opportunity-badge";
-import { aiRecommendationService } from "@/services/ai-recommendation.service";
+import { releaseIntelligenceService } from "@/services/release-intelligence.service";
+import { MiniChart } from "@/components/intelligence/mini-chart";
+import { IntelStat } from "@/components/intelligence/intel-stat";
 
-const TABS = ["Overview", "Pricing", "Resale", "AI Analysis", "Market", "Timeline", "Checklist", "Related"] as const;
+const TABS = ["Overview", "Pricing", "Resale", "AI", "Timeline", "Sources", "Market", "Graphs", "History", "Notes", "Checklist", "Related", "Statistics"] as const;
 type Tab = typeof TABS[number];
 
 interface ReleaseDetailProps {
@@ -40,7 +42,7 @@ export function ReleaseDetail({ release, similarReleases = [] }: ReleaseDetailPr
   });
 
   const displayResale = { ...release, ...resale };
-  const aiRec = aiRecommendationService.generate(displayResale);
+  const intel = releaseIntelligenceService.analyze(displayResale);
   const eventDate = release.release_starts_at ?? release.presale_starts_at;
   const location = [release.cities?.name, release.countries?.name].filter(Boolean).join(", ");
 
@@ -96,7 +98,7 @@ export function ReleaseDetail({ release, similarReleases = [] }: ReleaseDetailPr
     importance_score: 70, release_id: release.id, old_value: null, new_value: null, source_url: null, notified: false, created_at: "",
   }];
 
-  const analysis = aiAnalysis ?? { short_summary: aiRec.full_summary, recommended_action: aiRec.recommended_action, risk_notes: aiRec.why_risky };
+  const analysis = aiAnalysis ?? { short_summary: intel.full_brief, recommended_action: intel.recommended_action, risk_notes: intel.biggest_risks };
 
   const toggleCheck = (key: string) => setChecklist((c) => ({ ...c, [key]: !c[key] }));
 
@@ -190,17 +192,75 @@ export function ReleaseDetail({ release, similarReleases = [] }: ReleaseDetailPr
           </div>
         )}
 
-        {tab === "AI Analysis" && (
-          <div className="p-4 rounded-xl bg-titan-surface border border-titan-border space-y-3 text-sm">
-            <p className="text-zinc-300">{analysis.short_summary ?? aiRec.full_summary}</p>
+        {tab === "AI" && (
+          <div className="intel-card space-y-3 text-sm">
+            <p className="text-zinc-300">{intel.full_brief}</p>
             <div className="p-3 rounded-lg bg-titan-bg border border-titan-border text-xs space-y-2">
-              <div><span className="text-zinc-500">Why important:</span> {aiRec.why_important}</div>
-              <div><span className="text-zinc-500">Why risky:</span> {aiRec.why_risky}</div>
-              <div><span className="text-zinc-500">Monitor:</span> {aiRec.what_to_monitor}</div>
-              <div><span className="text-zinc-500">Opportunity:</span> {aiRec.estimated_opportunity}</div>
+              <div><span className="text-zinc-500">Why ranked:</span> {intel.why_ranked}</div>
+              <div><span className="text-zinc-500">Changed:</span> {intel.factors_changed}</div>
+              <div><span className="text-zinc-500">Sources:</span> {intel.official_sources_confirmed}</div>
+              <div><span className="text-zinc-500">Historical:</span> {intel.historical_context}</div>
+              <div><span className="text-zinc-500">Outlook:</span> {intel.market_outlook}</div>
+              <div><span className="text-zinc-500">Confidence:</span> {intel.confidence_explanation}</div>
+              <div><span className="text-zinc-500">Watch:</span> {intel.developments_to_watch}</div>
             </div>
-            <div className="flex items-start gap-2 text-yellow-500/80 text-xs"><AlertTriangle className="w-4 h-4 shrink-0" />{analysis.risk_notes}</div>
-            <div className="p-3 rounded-lg bg-titan-accent/10 border border-titan-accent/20 text-xs"><Zap className="w-4 h-4 inline mr-1" />{aiRec.recommended_action}</div>
+            <div className="flex items-start gap-2 text-yellow-500/80 text-xs"><AlertTriangle className="w-4 h-4 shrink-0" />{intel.biggest_risks}</div>
+            <div className="p-3 rounded-lg bg-titan-accent/10 border border-titan-accent/20 text-xs"><Zap className="w-4 h-4 inline mr-1" />{intel.recommended_action}</div>
+          </div>
+        )}
+
+        {tab === "Sources" && (
+          <div className="intel-card text-xs space-y-2">
+            {displayResale.official_sources?.map((s) => (
+              <div key={s} className="flex justify-between py-1 border-b border-titan-border/40">
+                <span>{s}</span><span className="text-emerald-400">Verified</span>
+              </div>
+            ))}
+            {sourceReliability && <div className="pt-2 text-zinc-500">Scanner: {sourceReliability.name} · {sourceReliability.reliability_score}% reliability</div>}
+          </div>
+        )}
+
+        {tab === "Graphs" && (
+          <div className="space-y-3">
+            {[
+              ["30 Day", displayResale.price_history_30d],
+              ["90 Day", displayResale.price_history_90d],
+              ["180 Day", displayResale.price_history_180d],
+            ].map(([label, data]) => (
+              <div key={String(label)} className="intel-card">
+                <div className="intel-section-title mb-2">{label}</div>
+                <MiniChart data={data as number[]} height={56} positive={displayResale.price_direction === "UP"} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "History" && (
+          <div className="intel-card text-xs space-y-2">
+            <div className="flex justify-between"><span className="text-zinc-500">Historical ROI</span><span className="font-mono text-emerald-400">{displayResale.historical_roi_pct}%</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Price change</span><span className="font-mono">{displayResale.historical_price_change_pct}%</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Sellout time</span><span className="font-mono">{displayResale.historical_sellout_minutes ?? "—"} min</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Attendance</span><span className="font-mono">{displayResale.historical_attendance_pct ?? "—"}%</span></div>
+          </div>
+        )}
+
+        {tab === "Notes" && (
+          <textarea value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Internal intelligence notes..."
+            className="w-full p-3 bg-titan-bg border border-titan-border rounded-lg text-sm h-32 focus:outline-none focus:border-titan-accent" />
+        )}
+
+        {tab === "Statistics" && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <IntelStat label="Popularity" value={displayResale.popularity_score} />
+            <IntelStat label="Google Trends" value={displayResale.google_trends_score} />
+            <IntelStat label="News" value={displayResale.news_activity_score} />
+            <IntelStat label="Social" value={displayResale.social_activity_score} />
+            <IntelStat label="Momentum" value={displayResale.momentum_score} />
+            <IntelStat label="Volatility" value={displayResale.volatility_score} />
+            <IntelStat label="AI Confidence" value={`${displayResale.ai_confidence}%`} />
+            <IntelStat label="Queue" value={displayResale.expected_queue_difficulty} />
+            <IntelStat label="Sellout ETA" value={displayResale.expected_sellout_hours ? `${displayResale.expected_sellout_hours}h` : "—"} />
+            <IntelStat label="Countries" value={displayResale.countries_interested?.join(", ") ?? "—"} />
           </div>
         )}
 
@@ -258,14 +318,6 @@ export function ReleaseDetail({ release, similarReleases = [] }: ReleaseDetailPr
       {sourceReliability && tab === "Overview" && (
         <div className="mt-4 p-3 rounded-lg bg-titan-surface border border-titan-border flex items-center gap-3 text-xs">
           <Radio className="w-4 h-4" /> Source: {sourceReliability.name} · Reliability {sourceReliability.reliability_score}%
-        </div>
-      )}
-
-      {tab === "Overview" && (
-        <div className="mt-4">
-          <h3 className="text-xs uppercase text-zinc-500 mb-2">Admin Notes</h3>
-          <textarea value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Internal notes..."
-            className="w-full p-3 bg-titan-bg border border-titan-border rounded-lg text-sm h-20 focus:outline-none focus:border-titan-accent" />
         </div>
       )}
     </div>

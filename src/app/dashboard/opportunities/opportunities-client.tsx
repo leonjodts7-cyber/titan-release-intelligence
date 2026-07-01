@@ -40,8 +40,9 @@ export function OpportunitiesClient({ initialReleases }: { initialReleases: Enri
           onChange={(e) => setFilters((f) => ({ ...f, action: (e.target.value as OpportunityAction) || undefined }))}
         >
           <option value="">All actions</option>
+          <option value="TOP OPPORTUNITY">TOP OPPORTUNITY</option>
           <option value="MUST WATCH">MUST WATCH</option>
-          <option value="PRIORITY">PRIORITY</option>
+          <option value="HIGH PRIORITY">HIGH PRIORITY</option>
           <option value="PREPARE">PREPARE</option>
           <option value="WATCH">WATCH</option>
         </select>

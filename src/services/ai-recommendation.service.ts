@@ -31,9 +31,9 @@ export class AIRecommendationService {
       ? `Estimated profit ${currency} ${release.expected_profit_low}–${release.expected_profit_high} (+${roi}% ROI). Liquidity ${Math.round(release.market_liquidity_score)}%.`
       : "Limited profit upside based on current signals.";
 
-    const recommendedAction = action === "MUST WATCH"
+    const recommendedAction = action === "TOP OPPORTUNITY" || action === "MUST WATCH"
       ? "Set alerts immediately. Prepare official platform accounts. Save official link. Do NOT use third-party checkout tools."
-      : action === "PRIORITY"
+      : action === "HIGH PRIORITY" || String(action) === "PRIORITY"
         ? "Add to watchlist. Verify official link. Check presale eligibility and timezone."
         : action === "PREPARE"
           ? "Monitor weekly. Save official link when confirmed."

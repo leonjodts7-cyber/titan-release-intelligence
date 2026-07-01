@@ -1,7 +1,7 @@
 export type PriorityLevel = "LOW" | "MEDIUM" | "HIGH" | "EXTREME";
 export type ReleaseStatus = "rumored" | "announced" | "presale" | "on_sale" | "sold_out" | "cancelled" | "ended";
 export type ReleaseType = "ticket" | "product" | "merch" | "collectible" | "gaming" | "fashion" | "other";
-export type OpportunityAction = "IGNORE" | "WATCH" | "PREPARE" | "PRIORITY" | "MUST WATCH";
+export type OpportunityAction = "IGNORE" | "WATCH" | "PREPARE" | "HIGH PRIORITY" | "MUST WATCH" | "TOP OPPORTUNITY" | "PRIORITY";
 export type UpdateType =
   | "new_release"
   | "date_changed"

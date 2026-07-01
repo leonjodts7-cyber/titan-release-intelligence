@@ -3,20 +3,74 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0f;
+  --background: #07070b;
   --foreground: #e4e4e7;
+  --surface: #0e0e14;
+  --border: #1c1c26;
+  --accent: #6366f1;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+@layer components {
+  .command-center-bar {
+    @apply rounded-lg border border-titan-border overflow-hidden bg-titan-surface;
+  }
+
+  .intel-stat {
+    @apply px-2 py-1.5 rounded border border-titan-border/60 bg-titan-bg/50;
+  }
+
+  .intel-stat-compact {
+    @apply py-1;
+  }
+
+  .intel-stat-label {
+    @apply text-[9px] uppercase tracking-wider text-zinc-500 font-medium;
+  }
+
+  .intel-stat-value {
+    @apply text-sm font-mono font-semibold text-zinc-100 leading-tight;
+  }
+
+  .intel-stat-sub {
+    @apply text-[9px] text-zinc-600 font-mono;
+  }
+
+  .intel-table {
+    @apply w-full text-[11px] font-mono;
+  }
+
+  .intel-table th {
+    @apply text-left text-[9px] uppercase tracking-wider text-zinc-500 font-medium px-2 py-1.5 border-b border-titan-border bg-titan-surface/80 sticky top-0;
+  }
+
+  .intel-table td {
+    @apply px-2 py-1.5 border-b border-titan-border/40 text-zinc-300;
+  }
+
+  .intel-table tr:hover td {
+    @apply bg-white/[0.02];
+  }
+
+  .intel-card {
+    @apply rounded-lg border border-titan-border bg-titan-surface p-3;
+  }
+
+  .intel-section-title {
+    @apply text-[10px] font-semibold uppercase tracking-wider text-zinc-500;
+  }
 }
 
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 3px;
+    height: 3px;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;

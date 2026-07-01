@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TITAN — Release Intelligence OS",
-  description: "Bloomberg Terminal for Drops. Automated release detection, AI scoring, and real-time alerts.",
+  title: "TITAN — Elite Intelligence Platform",
+  description: "Professional release, resale, and market intelligence. Tickets, sneakers, TCG, events.",
 };
 
 export default function RootLayout({

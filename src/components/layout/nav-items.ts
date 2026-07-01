@@ -1,0 +1,17 @@
+import { Zap, LayoutDashboard, TrendingUp, Layers, BarChart3, Search, Calendar, Eye, Bell, Radio, ScanLine, Shield, Settings } from "lucide-react";
+
+export const navItems = [
+  { href: "/dashboard", label: "Intelligence", icon: LayoutDashboard },
+  { href: "/dashboard/opportunities", label: "Opportunities", icon: Zap },
+  { href: "/dashboard/market", label: "Market", icon: TrendingUp },
+  { href: "/dashboard/tcg", label: "TCG", icon: Layers },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/dashboard/releases", label: "Releases", icon: Search },
+  { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
+  { href: "/dashboard/watchlists", label: "Watchlists", icon: Eye },
+  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
+  { href: "/dashboard/sources", label: "Sources", icon: Radio },
+  { href: "/dashboard/scans", label: "Scans", icon: ScanLine },
+  { href: "/dashboard/admin", label: "Admin", icon: Shield },
+  { href: "/dashboard/admin/setup", label: "Setup", icon: Settings },
+];
