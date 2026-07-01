@@ -1,6 +1,7 @@
 export type PriorityLevel = "LOW" | "MEDIUM" | "HIGH" | "EXTREME";
 export type ReleaseStatus = "rumored" | "announced" | "presale" | "on_sale" | "sold_out" | "cancelled" | "ended";
 export type ReleaseType = "ticket" | "product" | "merch" | "collectible" | "gaming" | "fashion" | "other";
+export type OpportunityAction = "IGNORE" | "WATCH" | "PREPARE" | "PRIORITY" | "MUST WATCH";
 export type UpdateType =
   | "new_release"
   | "date_changed"
@@ -69,6 +70,17 @@ export interface Release {
   countries?: { name: string; code: string } | null;
   cities?: { name: string } | null;
   venues?: { name: string; capacity: number | null } | null;
+  // TCG / collectibles
+  tcg_name?: string | null;
+  set_name?: string | null;
+  product_type_tcg?: string | null;
+  card_rarity?: string | null;
+  sealed_product?: boolean | null;
+  msrp?: number | null;
+  market_price?: number | null;
+  graded_estimate_psa10?: number | null;
+  collector_demand_score?: number | null;
+  grading_potential_score?: number | null;
 }
 
 export interface ReleaseUpdate {
@@ -246,8 +258,21 @@ export interface ReleaseFilters {
   priority?: PriorityLevel;
   status?: ReleaseStatus;
   source?: string;
-  sort?: "priority" | "date" | "hype" | "sellout" | "roi";
+  sort?: "priority" | "date" | "hype" | "sellout" | "roi" | "opportunity";
   limit?: number;
+}
+
+export interface OpportunityFilters {
+  search?: string;
+  category?: string;
+  priority?: PriorityLevel;
+  action?: OpportunityAction;
+  minRoi?: number;
+  minProfit?: number;
+  maxRisk?: number;
+  minConfidence?: number;
+  country?: string;
+  sort?: "opportunity" | "roi" | "profit" | "date" | "urgency";
 }
 
 export interface SetupHealth {
@@ -266,5 +291,10 @@ export interface SetupHealth {
   cronSecretConfigured: boolean;
   ticketmasterConfigured: boolean;
   rssFeedsConfigured: boolean;
+  stockxConfigured: boolean;
+  tcgplayerConfigured: boolean;
+  justtcgConfigured: boolean;
+  pokewalletConfigured: boolean;
+  cardmarketConfigured: boolean;
   errors: string[];
 }

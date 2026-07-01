@@ -48,6 +48,11 @@ export async function checkSetupHealth(): Promise<SetupHealth> {
     cronSecretConfigured: Boolean(process.env.CRON_SECRET),
     ticketmasterConfigured: Boolean(process.env.TICKETMASTER_API_KEY),
     rssFeedsConfigured: Boolean(process.env.RSS_FEED_URLS),
+    stockxConfigured: Boolean(process.env.STOCKX_API_KEY),
+    tcgplayerConfigured: Boolean(process.env.TCGPLAYER_API_KEY),
+    justtcgConfigured: Boolean(process.env.JUSTTCG_API_KEY),
+    pokewalletConfigured: Boolean(process.env.POKEWALLET_API_KEY),
+    cardmarketConfigured: Boolean(process.env.CARDMARKET_API_KEY),
     errors,
   };
 }

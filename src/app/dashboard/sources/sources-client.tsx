@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import type { SourceAdapter } from "@/types";
 import { Radio, Play, Pause, Clock } from "lucide-react";
+import { scanSchedulerService } from "@/services/scan-scheduler.service";
 
 function getNextScanIn(source: SourceAdapter): string {
   if (!source.last_scan_at) return `~${source.scan_frequency_minutes}m`;
@@ -68,18 +69,24 @@ export function SourcesClient({ initialSources }: { initialSources: SourceAdapte
         <div className="p-3 rounded-lg bg-titan-surface border border-titan-border text-sm font-mono mb-4">{lastResult}</div>
       )}
       <div className="space-y-2">
-        {sources.map((source) => (
+        {sources.map((source) => {
+          const schedule = scanSchedulerService.getSchedule(source);
+          return (
           <div key={source.id} className="flex items-center gap-4 p-4 rounded-xl bg-titan-surface border border-titan-border">
             <Radio className={`w-5 h-5 shrink-0 ${source.enabled && !source.last_error ? "text-green-500" : source.last_error ? "text-red-500" : "text-zinc-600"}`} />
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm">{source.name}</div>
+              <div className="font-medium text-sm flex items-center gap-2">
+                {source.name}
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-titan-bg border border-titan-border text-zinc-500">{schedule.priority}</span>
+              </div>
               <div className="text-xs text-zinc-500 mt-0.5 flex flex-wrap gap-x-3">
-                <span>Every {source.scan_frequency_minutes}min</span>
+                <span>Every {schedule.interval_minutes}min</span>
                 <span>Reliability {source.reliability_score}%</span>
                 {source.last_scan_at && <span>Last: {new Date(source.last_scan_at).toLocaleString()}</span>}
-                <span className="flex items-center gap-1 text-titan-accent">
+                <span className={`flex items-center gap-1 ${schedule.is_due ? "text-yellow-400" : "text-titan-accent"}`}>
                   <Clock className="w-3 h-3" />
                   Next: {getNextScanIn(source)}
+                  {schedule.retry_backoff_minutes && ` (retry +${schedule.retry_backoff_minutes}m)`}
                 </span>
                 {source.last_error && <span className="text-yellow-500">Error: {source.last_error}</span>}
               </div>
@@ -98,7 +105,8 @@ export function SourcesClient({ initialSources }: { initialSources: SourceAdapte
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );

@@ -6,8 +6,14 @@ import { NikeAdapter } from "./nike";
 import { AdidasAdapter } from "./adidas";
 import { RssAdapter } from "./rss";
 import { SportsAdapter } from "./sports";
+import { TcgPlayerAdapter, CardMarketAdapter, JustTcgAdapter, PokeWalletAdapter, PokemonRssAdapter } from "./tcg";
+import { StockXAdapter, GoatAdapter, FlightClubAdapter } from "./market-data";
 
-export { TicketmasterAdapter, NikeAdapter, AdidasAdapter, RssAdapter, SportsAdapter };
+export {
+  TicketmasterAdapter, NikeAdapter, AdidasAdapter, RssAdapter, SportsAdapter,
+  TcgPlayerAdapter, CardMarketAdapter, JustTcgAdapter, PokeWalletAdapter, PokemonRssAdapter,
+  StockXAdapter, GoatAdapter, FlightClubAdapter,
+};
 export { adapterLog, getAdapterLogs } from "./logger";
 
 export class ManualAdapter extends BaseSourceAdapter {
@@ -28,7 +34,7 @@ export class ManualAdapter extends BaseSourceAdapter {
   }
 }
 
-const SPORTS_NAMES = ["UEFA", "FIFA", "NFL", "NBA", "Premier League", "La Liga", "Formula 1"];
+const SPORTS_NAMES = ["UEFA", "FIFA", "NFL", "NBA", "Premier League", "La Liga", "Formula 1", "UFC", "Wimbledon"];
 
 export function createAdapter(name: string, record?: SourceAdapter): BaseSourceAdapter | null {
   if (SPORTS_NAMES.includes(name)) {
@@ -45,6 +51,14 @@ export function createAdapter(name: string, record?: SourceAdapter): BaseSourceA
     "RSS Feeds": (r) => new RssAdapter(r),
     "Official Websites": (r) => new RssAdapter(r),
     "Manual Sources": (r) => new ManualAdapter(r),
+    TCGplayer: (r) => new TcgPlayerAdapter(r),
+    CardMarket: (r) => new CardMarketAdapter(r),
+    JustTCG: (r) => new JustTcgAdapter(r),
+    "PokéWallet": (r) => new PokeWalletAdapter(r),
+    "Pokémon Center RSS": (r) => new PokemonRssAdapter(r),
+    StockX: (r) => new StockXAdapter(r),
+    GOAT: (r) => new GoatAdapter(r),
+    "Flight Club": (r) => new FlightClubAdapter(r),
   };
 
   const factory = factories[name];
@@ -55,7 +69,9 @@ export function getAllAdapterNames(): string[] {
   return [
     "Ticketmaster", "LiveNation", "Eventim", "AXS",
     "Nike SNKRS", "Adidas Confirmed",
-    "UEFA", "FIFA", "NFL", "NBA", "Premier League", "La Liga", "Formula 1",
+    "UEFA", "FIFA", "NFL", "NBA", "Premier League", "La Liga", "Formula 1", "UFC",
+    "TCGplayer", "CardMarket", "JustTCG", "PokéWallet", "Pokémon Center RSS",
+    "StockX", "GOAT", "Flight Club",
     "RSS Feeds", "Official Websites", "Manual Sources",
   ];
 }

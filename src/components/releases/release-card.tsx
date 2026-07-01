@@ -3,6 +3,7 @@ import { ExternalLink, MapPin } from "lucide-react";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { cn, formatCountdown, formatDate, priorityColor } from "@/lib/utils";
 import { PriceIntel } from "./price-intel";
+import { OpportunityBadge } from "./opportunity-badge";
 
 interface ReleaseCardProps {
   release: EnrichedRelease;
@@ -32,6 +33,9 @@ export function ReleaseCard({ release, compact, showUpdate }: ReleaseCardProps) 
           <span className={cn("text-[10px] px-1.5 py-0.5 rounded border shrink-0", priorityColor(release.priority_level))}>
             {release.priority_level}
           </span>
+          {release.opportunity_action && (
+            <OpportunityBadge action={release.opportunity_action} score={release.opportunity_score} compact />
+          )}
         </div>
 
         <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-zinc-500 mb-2">

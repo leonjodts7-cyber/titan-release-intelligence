@@ -30,8 +30,10 @@ const HIGH_RESALE = [
   "nike mercurial", "nike phantom", "adidas f50", "adidas predator",
   "drake", "beyoncé", "bad bunny", "billie eilish", "dua lipa",
   "el clasico", "premier league", "formula 1", "supreme", "palace",
-  "limited", "snkrs", "festivals",
+  "limited", "snkrs", "festivals", "pokémon", "pokemon", "one piece",
+  "lorcana", "charizard", "travis scott",
 ];
+const TCG_KEYWORDS = ["pokémon", "pokemon", "one piece", "lorcana", "magic", "yu-gi-oh", "tcg", "booster", "elite trainer"];
 
 export class ResaleIntelligenceService {
   analyze(release: Partial<Release>): ResaleIntelligence {
@@ -64,6 +66,20 @@ export class ResaleIntelligenceService {
         resaleLow = resaleLow! * scarcity * 0.9;
         resaleMid = resaleMid * scarcity;
         resaleHigh = resaleHigh! * scarcity * 1.2;
+      }
+    }
+
+    if (release.release_type === "collectible" || release.tcg_name) {
+      const tcgBoost = this.getTcgMultiplier(release);
+      if (resaleMid) {
+        resaleLow = resaleLow! * tcgBoost.low;
+        resaleMid = resaleMid * tcgBoost.mid;
+        resaleHigh = resaleHigh! * tcgBoost.high;
+      }
+      if (release.market_price && retailMid && release.market_price > retailMid) {
+        resaleMid = release.market_price;
+        resaleLow = release.market_price * 0.85;
+        resaleHigh = release.market_price * 1.35;
       }
     }
 
@@ -132,6 +148,8 @@ export class ResaleIntelligenceService {
 
   private calcLiquidity(release: Partial<Release>, tier: string): number {
     const type = release.release_type as ReleaseType;
+    if (release.tcg_name === "Pokémon") return tier === "EXTREME" ? 90 : 78;
+    if (release.tcg_name) return 72;
     if (type === "ticket" && tier === "EXTREME") return 92;
     if (type === "product" && tier === "EXTREME") return 85;
     if (tier === "HIGH") return 72;
@@ -139,7 +157,22 @@ export class ResaleIntelligenceService {
     return 40;
   }
 
+  private getTcgMultiplier(release: Partial<Release>): { low: number; mid: number; high: number } {
+    const name = (release.tcg_name ?? release.title ?? "").toLowerCase();
+    if (name.includes("pokémon") || name.includes("pokemon") || name.includes("charizard")) {
+      return { low: 1.6, mid: 2.4, high: 4.0 };
+    }
+    if (name.includes("one piece")) return { low: 1.5, mid: 2.2, high: 3.5 };
+    if (name.includes("lorcana")) return { low: 1.4, mid: 2.0, high: 3.0 };
+    if (TCG_KEYWORDS.some((k) => name.includes(k))) return { low: 1.3, mid: 1.8, high: 2.6 };
+    return { low: 1.2, mid: 1.5, high: 2.0 };
+  }
+
   private buildExplanation(release: Partial<Release>, tier: string, confidence: number): string {
+    if (release.tcg_name || release.release_type === "collectible") {
+      const sealed = release.sealed_product ? "Sealed product premium" : "Singles/collection";
+      return `Estimated TCG/collector market: ${sealed} demand for ${release.tcg_name ?? "category"}. MSRP vs market spread analyzed. Confidence ${confidence}% (Estimated).`;
+    }
     const type = release.release_type === "ticket" ? "secondary ticket market" : "resale market";
     if (tier === "EXTREME") {
       return `Estimated ${type} demand is extreme based on global artist/event profile, limited supply, and historical sellout patterns. Confidence ${confidence}% (Estimated).`;

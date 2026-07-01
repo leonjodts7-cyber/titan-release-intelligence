@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Command Center", icon: LayoutDashboard },
+  { href: "/dashboard/opportunities", label: "Opportunities", icon: Zap },
   { href: "/dashboard/releases", label: "Releases", icon: Search },
   { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
   { href: "/dashboard/watchlists", label: "Watchlists", icon: Eye },
@@ -65,8 +66,8 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose
           })}
         </nav>
         <div className="p-4 border-t border-titan-border">
-          <div className="text-xs text-zinc-500">Release Intelligence OS</div>
-          <div className="text-xs text-zinc-600 mt-0.5">v1.0.0 MVP</div>
+          <div className="text-xs text-zinc-500">Deal Execution Intelligence OS</div>
+          <div className="text-xs text-zinc-600 mt-0.5">v4.0.0</div>
         </div>
       </aside>
     </>

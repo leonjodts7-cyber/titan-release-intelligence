@@ -48,8 +48,8 @@ export function CommandBar({
     { icon: Clock, label: "Last scan", value: lastScanAt ? formatDistanceToNow(new Date(lastScanAt), { addSuffix: true }) : "—", href: "/dashboard/scans" },
     { icon: Zap, label: "Next scan", value: nextScanIn, href: "/dashboard/scans" },
     { icon: Activity, label: "Pipeline", value: pipelineActive ? "Active" : "Idle", ok: pipelineActive },
-    { icon: AlertTriangle, label: "Critical", value: String(criticalAlerts), alert: criticalAlerts > 0, href: "/dashboard/releases?priority=EXTREME" },
-    { icon: Clock, label: "Today", value: String(releasesToday), href: "/dashboard/calendar" },
+    { icon: AlertTriangle, label: "Critical", value: String(criticalAlerts), alert: criticalAlerts > 0, href: "/dashboard/opportunities" },
+    { icon: Clock, label: "Opportunities", value: String(releasesToday), href: "/dashboard/opportunities" },
     { icon: TrendingUp, label: "Est. profit pool", value: `€${Math.round(profitOpportunity).toLocaleString()}`, href: "/dashboard/releases?sort=roi" },
     { icon: TrendingUp, label: "Top ROI", value: `${topRoi}%`, href: "/dashboard/releases?sort=roi" },
   ];

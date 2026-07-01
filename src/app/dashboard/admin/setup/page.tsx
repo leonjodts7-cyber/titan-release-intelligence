@@ -79,6 +79,11 @@ export default function SetupPage() {
               <StatusRow label="Cron secret configured" ok={health.cronSecretConfigured} />
               <StatusRow label="Ticketmaster API key" ok={health.ticketmasterConfigured} />
               <StatusRow label="RSS feeds configured" ok={health.rssFeedsConfigured} />
+              <StatusRow label="StockX API key" ok={health.stockxConfigured} />
+              <StatusRow label="TCGplayer API key" ok={health.tcgplayerConfigured} />
+              <StatusRow label="JustTCG API key" ok={health.justtcgConfigured} />
+              <StatusRow label="PokéWallet API key" ok={health.pokewalletConfigured} />
+              <StatusRow label="CardMarket API key" ok={health.cardmarketConfigured} />
             </section>
 
             {health.errors.length > 0 && (

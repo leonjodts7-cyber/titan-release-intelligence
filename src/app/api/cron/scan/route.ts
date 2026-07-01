@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pipelineOrchestrator } from "@/services/pipeline.service";
 import { getSourceAdapters } from "@/lib/data/sources";
+import { pipelineOrchestrator } from "@/services/pipeline.service";
 import { notificationService } from "@/services/notification.service";
+import { scanSchedulerService } from "@/services/scan-scheduler.service";
 
 function verifyCronAuth(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -16,10 +17,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized — set CRON_SECRET" }, { status: 401 });
   }
 
-  const adapters = await getSourceAdapters(true);
+  const allAdapters = await getSourceAdapters(true);
+  const adapters = scanSchedulerService.getDueSources(allAdapters);
+  const toScan = adapters.length > 0 ? adapters : allAdapters.slice(0, 5);
   const results: Array<{ source: string; mode?: string; errors: string[]; itemsFound: number; itemsCreated: number; itemsUpdated: number }> = [];
 
-  for (const adapter of adapters) {
+  for (const adapter of toScan) {
     try {
       const result = await pipelineOrchestrator.runScan(adapter);
       results.push({
@@ -47,6 +50,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     message: "Cron scan completed",
     scanned: results.length,
+    due: adapters.length,
+    total: allAdapters.length,
     failed: failed.length,
     results,
     timestamp: new Date().toISOString(),
