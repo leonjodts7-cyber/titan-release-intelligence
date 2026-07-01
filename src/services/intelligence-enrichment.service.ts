@@ -101,9 +101,7 @@ export class IntelligenceEnrichmentService {
     const price90 = this.generateHistory(base30, id, 90, 0.12);
     const price180 = this.generateHistory(base30, id, 180, 0.15);
 
-    const aiConfidence = Math.round(
-      (resale.resale_confidence_score * 0.4 + release.confidence_score * 0.3 + momentum * 0.2 + (release.official_url ? 10 : 0))
-    );
+    const aiConfidence = Math.min(92, Math.max(8, Math.round(resale.resale_confidence_score)));
 
     return {
       popularity_score: Math.min(100, Math.round(hype * 0.5 + demand * 0.3 + socialActivity * 0.2)),
@@ -124,7 +122,7 @@ export class IntelligenceEnrichmentService {
       volatility_score: volatility,
       expected_sellout_hours: selloutHours,
       expected_queue_difficulty: queueDifficulty,
-      ai_confidence: Math.min(98, aiConfidence),
+      ai_confidence: aiConfidence,
       momentum_score: momentum,
       price_direction: priceDirection,
       historical_sellout_pct: isTicket ? Math.min(99, sellout + seedHash(id, 13) * 0.05) : null,

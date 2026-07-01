@@ -2,6 +2,7 @@
 
 import { Sidebar, Menu } from "@/components/layout/sidebar";
 import { DemoModeBanner } from "@/components/layout/demo-banner";
+import { DemoModePill } from "@/components/layout/demo-pill";
 import { GlobalSearch } from "@/components/intelligence/global-search";
 import { LiveActivityPanel } from "@/components/intelligence/live-activity-panel";
 import { CommandCenterBar, type CommandCenterMetrics } from "@/components/intelligence/command-center-bar";
@@ -30,6 +31,7 @@ export function IntelligenceLayout({ children, activityFeed, showFeed = true, co
           <div className="flex-1 flex justify-center lg:justify-start lg:ml-0">
             <GlobalSearch />
           </div>
+          <DemoModePill />
         </header>
         <DemoModeBanner />
         <div className="flex flex-1 min-h-0">

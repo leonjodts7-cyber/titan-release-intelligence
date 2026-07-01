@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { nl } from "date-fns/locale";
 import type { ActivityFeedItem } from "@/lib/data/activity-feed";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +77,9 @@ export function LiveActivityPanel({ initialItems }: { initialItems?: ActivityFee
         )}
         {items.map((item) => (
           <div key={item.id} className="activity-row py-2 border-b border-titan-border/40 last:border-0">
-            <div className="text-[10px] font-mono text-zinc-600">{format(new Date(item.timestamp), "HH:mm")}</div>
+            <div className="text-[10px] font-mono text-zinc-600">
+              {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true, locale: nl })}
+            </div>
             <div className={cn("text-[10px] font-medium uppercase", TYPE_COLORS[item.type] ?? "text-zinc-500")}>
               {item.source}
             </div>

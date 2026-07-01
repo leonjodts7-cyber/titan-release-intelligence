@@ -3,6 +3,7 @@ import { getSourceAdapters } from "@/lib/data/sources";
 import { getReleases } from "@/lib/data/releases";
 import { enrichReleases } from "@/lib/data/enrich-releases";
 import { evaluateAllAlerts } from "@/lib/data/alert-rules";
+import { evaluateAlertTriggers } from "@/services/alert-dispatch.service";
 import { pipelineOrchestrator } from "@/services/pipeline.service";
 import { notificationService } from "@/services/notification.service";
 import { scanSchedulerService } from "@/services/scan-scheduler.service";
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
 
   const releases = enrichReleases(await getReleases());
   const alertEvents = evaluateAllAlerts(releases);
+  const queuedDeliveries = evaluateAlertTriggers(releases);
   for (const event of alertEvents) {
     const release = releases.find((r) => r.id === event.release_id);
     if (release) {
@@ -72,6 +74,7 @@ export async function POST(request: NextRequest) {
     total: allAdapters.length,
     failed: failed.length,
     alerts_triggered: alertEvents.length,
+    alert_deliveries_queued: queuedDeliveries,
     results,
     timestamp: new Date().toISOString(),
   });

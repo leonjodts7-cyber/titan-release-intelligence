@@ -100,7 +100,33 @@ export async function getActivityFeed(limit = 40): Promise<ActivityFeedItem[]> {
     });
   }
 
-  return items
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, limit);
+  return dedupeAndGroupFeed(
+    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  ).slice(0, limit);
+}
+
+function dedupeAndGroupFeed(items: ActivityFeedItem[]): ActivityFeedItem[] {
+  const seen = new Set<string>();
+  const out: ActivityFeedItem[] = [];
+
+  for (const item of items) {
+    const key = `${item.type}:${item.headline}:${item.release_id ?? ""}`;
+    if (item.type !== "scan" && seen.has(key)) continue;
+    seen.add(key);
+
+    if (item.type === "scan" && item.headline === "Scan completed") {
+      const existing = out.find((o) => o.type === "scan" && o.headline.startsWith("Scan completed") && o.source === item.source);
+      if (existing) {
+        const match = existing.headline.match(/^(\d+)x /);
+        const count = match ? parseInt(match[1], 10) + 1 : 2;
+        existing.headline = `${count}x scan completed`;
+        existing.timestamp = item.timestamp;
+        continue;
+      }
+    }
+
+    out.push({ ...item });
+  }
+
+  return out;
 }

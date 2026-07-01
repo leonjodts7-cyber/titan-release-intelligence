@@ -3,18 +3,28 @@ import { resaleIntelligenceService } from "@/services/resale-intelligence.servic
 import type { ResaleIntelligence } from "@/services/resale-intelligence.service";
 import { intelligenceEnrichmentService, type IntelligenceProfile } from "@/services/intelligence-enrichment.service";
 import { opportunityEngineService, type OpportunityEngineResult } from "@/services/opportunity-engine.service";
+import { assignOpportunityTiers } from "@/lib/scoring-v2";
 
-export type EnrichedRelease = Release & ResaleIntelligence & IntelligenceProfile & OpportunityEngineResult;
+export type EnrichedRelease = Release &
+  ResaleIntelligence &
+  IntelligenceProfile &
+  OpportunityEngineResult;
 
-export function enrichRelease(release: Release): EnrichedRelease {
+function enrichReleaseCore(release: Release): EnrichedRelease {
   const resale = resaleIntelligenceService.analyze(release);
   const intel = intelligenceEnrichmentService.enrich(release, resale);
   const opportunity = opportunityEngineService.score(release, resale, intel);
   return { ...release, ...resale, ...intel, ...opportunity };
 }
 
+export function enrichRelease(release: Release): EnrichedRelease {
+  const enriched = enrichReleaseCore(release);
+  return assignOpportunityTiers([enriched])[0];
+}
+
 export function enrichReleases(releases: Release[]): EnrichedRelease[] {
-  return releases.map(enrichRelease);
+  const enriched = releases.map(enrichReleaseCore);
+  return assignOpportunityTiers(enriched);
 }
 
 export function sortByOpportunity(releases: EnrichedRelease[]): EnrichedRelease[] {
@@ -22,15 +32,54 @@ export function sortByOpportunity(releases: EnrichedRelease[]): EnrichedRelease[
 }
 
 export function sortByResaleOpportunity(releases: EnrichedRelease[]): EnrichedRelease[] {
-  return [...releases].sort((a, b) => (b.expected_profit_mid ?? 0) - (a.expected_profit_mid ?? 0));
+  return [...releases].sort(
+    (a, b) => (b.net_profit_mid_eur ?? b.expected_profit_mid ?? 0) - (a.net_profit_mid_eur ?? a.expected_profit_mid ?? 0)
+  );
 }
 
 export function sortByRoi(releases: EnrichedRelease[]): EnrichedRelease[] {
-  return [...releases].sort((a, b) => (b.expected_roi_mid ?? 0) - (a.expected_roi_mid ?? 0));
+  return [...releases].sort((a, b) => (b.gross_roi_mid ?? b.expected_roi_mid ?? 0) - (a.gross_roi_mid ?? a.expected_roi_mid ?? 0));
+}
+
+export function sortByNetRoi(releases: EnrichedRelease[]): EnrichedRelease[] {
+  return [...releases].sort((a, b) => (b.net_roi_mid ?? 0) - (a.net_roi_mid ?? 0));
+}
+
+function takeUnique(releases: EnrichedRelease[], limit: number, used: Set<string>): EnrichedRelease[] {
+  const out: EnrichedRelease[] = [];
+  for (const r of releases) {
+    if (used.has(r.id)) continue;
+    out.push(r);
+    used.add(r.id);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+export function getDashboardSections(releases: EnrichedRelease[], limit = 5) {
+  const used = new Set<string>();
+  const mustWatch = takeUnique(
+    sortByOpportunity(releases).filter((r) =>
+      r.opportunity_action === "TOP OPPORTUNITY" ||
+      r.opportunity_action === "MUST WATCH" ||
+      r.opportunity_action === "HIGH PRIORITY"
+    ),
+    limit,
+    used
+  );
+  const bestResale = takeUnique(
+    sortByResaleOpportunity(releases).filter((r) => (r.net_profit_mid_eur ?? r.expected_profit_mid ?? 0) > 0),
+    limit,
+    used
+  );
+  const highestRoi = takeUnique(sortByNetRoi(releases).filter((r) => (r.net_roi_mid ?? 0) > 0), limit, used);
+  return { mustWatch, bestResale, highestRoi, usedIds: used };
 }
 
 export function getTopResaleOpportunities(releases: EnrichedRelease[], limit = 6): EnrichedRelease[] {
-  return sortByResaleOpportunity(releases).filter((r) => (r.expected_profit_mid ?? 0) > 0).slice(0, limit);
+  return sortByResaleOpportunity(releases)
+    .filter((r) => (r.net_profit_mid_eur ?? r.expected_profit_mid ?? 0) > 0)
+    .slice(0, limit);
 }
 
 export function getMustWatch(releases: EnrichedRelease[], limit = 6): EnrichedRelease[] {
@@ -63,7 +112,12 @@ export function getTicketOpportunities(releases: EnrichedRelease[], limit = 6): 
 }
 
 export function getTotalProfitOpportunity(releases: EnrichedRelease[]): number {
-  return releases.reduce((sum, r) => sum + (r.expected_profit_mid ?? 0), 0);
+  const seen = new Set<string>();
+  return releases.reduce((sum, r) => {
+    if (seen.has(r.id)) return sum;
+    seen.add(r.id);
+    return sum + (r.net_profit_mid_eur ?? r.expected_profit_mid ?? 0);
+  }, 0);
 }
 
 export function filterOpportunities(
@@ -83,14 +137,14 @@ export function filterOpportunities(
   if (filters.category) result = result.filter((r) => r.release_categories?.slug === filters.category);
   if (filters.priority) result = result.filter((r) => r.priority_level === filters.priority);
   if (filters.action) result = result.filter((r) => r.opportunity_action === filters.action);
-  if (filters.minRoi != null) result = result.filter((r) => (r.expected_roi_mid ?? 0) >= filters.minRoi!);
-  if (filters.minProfit != null) result = result.filter((r) => (r.expected_profit_mid ?? 0) >= filters.minProfit!);
+  if (filters.minRoi != null) result = result.filter((r) => (r.net_roi_mid ?? r.expected_roi_mid ?? 0) >= filters.minRoi!);
+  if (filters.minProfit != null) result = result.filter((r) => (r.net_profit_mid_eur ?? r.expected_profit_mid ?? 0) >= filters.minProfit!);
   if (filters.maxRisk != null) result = result.filter((r) => r.risk_score <= filters.maxRisk!);
   if (filters.minConfidence != null) result = result.filter((r) => r.resale_confidence_score >= filters.minConfidence!);
   if (filters.country) result = result.filter((r) => r.countries?.code === filters.country);
 
   switch (filters.sort) {
-    case "roi": return sortByRoi(result);
+    case "roi": return sortByNetRoi(result);
     case "profit": return sortByResaleOpportunity(result);
     case "date":
       return result.sort((a, b) => {
@@ -103,7 +157,6 @@ export function filterOpportunities(
   }
 }
 
-/** Global search across all indexed fields */
 export function globalSearch(releases: EnrichedRelease[], query: string, limit = 30): EnrichedRelease[] {
   const q = query.toLowerCase().trim();
   if (!q) return [];

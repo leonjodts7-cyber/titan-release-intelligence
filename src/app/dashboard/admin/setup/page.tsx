@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { CheckCircle, XCircle, RefreshCw, ArrowLeft, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AlertChannelsSetup } from "./alert-channels-setup";
 import type { SetupHealth } from "@/types";
 
 function StatusRow({ label, ok }: { label: string; ok: boolean }) {
@@ -85,6 +86,8 @@ export default function SetupPage() {
               <StatusRow label="PokéWallet API key" ok={health.pokewalletConfigured} />
               <StatusRow label="CardMarket API key" ok={health.cardmarketConfigured} />
             </section>
+
+            <AlertChannelsSetup />
 
             {health.errors.length > 0 && (
               <section className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">

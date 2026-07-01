@@ -57,7 +57,7 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose
           })}
         </nav>
         <div className="px-3 py-2 border-t border-titan-border text-[9px] text-zinc-600 font-mono">
-          v6.0 · Monitoring Platform
+          v2.0 · Intelligence Platform
         </div>
       </aside>
     </>
