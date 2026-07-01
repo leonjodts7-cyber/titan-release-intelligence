@@ -1,13 +1,5 @@
 import type { SourceAdapter, ScanJob } from "@/types";
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
-
-function getClient() {
-  try {
-    return createServiceClient();
-  } catch {
-    return createAnonServiceClient();
-  }
-}
+import { getSupabaseClient } from "@/lib/supabase/admin";
 
 const MOCK_SOURCES: SourceAdapter[] = [
   { id: "1", name: "Ticketmaster", source_type: "mock", base_url: "https://www.ticketmaster.com", category: "concert-tickets", enabled: true, scan_frequency_minutes: 30, last_scan_at: null, last_success_at: null, last_error: null, reliability_score: 85, api_key_env: "TICKETMASTER_API_KEY", config: {}, created_at: "", updated_at: "" },
@@ -20,31 +12,30 @@ const MOCK_SOURCES: SourceAdapter[] = [
 ];
 
 export async function getSourceAdapters(enabledOnly = false): Promise<SourceAdapter[]> {
-  try {
-    const supabase = getClient();
-    let query = supabase.from("source_adapters").select("*").order("name");
-    if (enabledOnly) query = query.eq("enabled", true);
-    const { data, error } = await query;
-    if (!error && data?.length) return data as SourceAdapter[];
-  } catch {
-    // fallback
-  }
+  const supabase = getSupabaseClient();
+  if (!supabase) return enabledOnly ? MOCK_SOURCES.filter((s) => s.enabled) : MOCK_SOURCES;
+
+  let query = supabase.from("source_adapters").select("*").order("name");
+  if (enabledOnly) query = query.eq("enabled", true);
+  const { data, error } = await query;
+  if (!error && data?.length) return data as SourceAdapter[];
   return enabledOnly ? MOCK_SOURCES.filter((s) => s.enabled) : MOCK_SOURCES;
 }
 
 export async function getScanJobs(limit = 20): Promise<ScanJob[]> {
-  try {
-    const supabase = getClient();
-    const { data, error } = await supabase
-      .from("scan_jobs")
-      .select("*, source_adapters(name)")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (!error && data?.length) return data as ScanJob[];
-  } catch {
-    // fallback
-  }
+  const supabase = getSupabaseClient();
+  if (!supabase) return getMockScanJobs();
 
+  const { data, error } = await supabase
+    .from("scan_jobs")
+    .select("*, source_adapters(name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (!error && data?.length) return data as ScanJob[];
+  return getMockScanJobs();
+}
+
+function getMockScanJobs(): ScanJob[] {
   const now = Date.now();
   return [
     { id: "1", source_adapter_id: "2", status: "completed", started_at: new Date(now - 120000).toISOString(), finished_at: new Date(now - 60000).toISOString(), items_found: 2, items_created: 1, items_updated: 0, items_skipped: 1, error_message: null, created_at: new Date(now - 120000).toISOString(), source_adapters: { name: "Nike SNKRS" } },

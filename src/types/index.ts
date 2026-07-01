@@ -246,6 +246,25 @@ export interface ReleaseFilters {
   priority?: PriorityLevel;
   status?: ReleaseStatus;
   source?: string;
-  sort?: "priority" | "date" | "hype" | "sellout";
+  sort?: "priority" | "date" | "hype" | "sellout" | "roi";
   limit?: number;
+}
+
+export interface SetupHealth {
+  demoMode: boolean;
+  gitBranch: string;
+  gitRemoteConfigured: boolean;
+  gitRemoteInstructions: string | null;
+  supabaseConnected: boolean;
+  serviceRoleAvailable: boolean;
+  tablesFound: boolean;
+  seedDataFound: boolean;
+  openaiConfigured: boolean;
+  discordConfigured: boolean;
+  telegramConfigured: boolean;
+  resendConfigured: boolean;
+  cronSecretConfigured: boolean;
+  ticketmasterConfigured: boolean;
+  rssFeedsConfigured: boolean;
+  errors: string[];
 }

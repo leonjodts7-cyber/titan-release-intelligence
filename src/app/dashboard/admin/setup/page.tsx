@@ -5,7 +5,7 @@ import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { CheckCircle, XCircle, RefreshCw, ArrowLeft, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { SetupHealth } from "@/lib/setup/health";
+import type { SetupHealth } from "@/types";
 
 function StatusRow({ label, ok }: { label: string; ok: boolean }) {
   return (
@@ -62,7 +62,8 @@ export default function SetupPage() {
             </section>
 
             <section className="p-4 rounded-xl bg-titan-surface border border-titan-border">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3">Supabase</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3">Runtime</h2>
+              <StatusRow label="Production mode (not demo)" ok={!health.demoMode} />
               <StatusRow label="Supabase connected" ok={health.supabaseConnected} />
               <StatusRow label="Service role available" ok={health.serviceRoleAvailable} />
               <StatusRow label="Tables found" ok={health.tablesFound} />

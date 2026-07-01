@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
 import { getReleaseById } from "@/lib/data/releases";
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
-
-function getClient() {
-  try {
-    return createServiceClient();
-  } catch {
-    return createAnonServiceClient();
-  }
-}
+import { getSupabaseClient } from "@/lib/supabase/admin";
 
 export async function GET(
   _request: Request,
@@ -20,12 +12,12 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  let updates = [];
+  let updates: unknown[] = [];
   let scores = null;
   let sourceReliability = null;
 
-  try {
-    const supabase = getClient();
+  const supabase = getSupabaseClient();
+  if (supabase) {
     const { data: updateData } = await supabase
       .from("release_updates")
       .select("*")
@@ -40,7 +32,7 @@ export async function GET(
       .eq("release_id", id)
       .order("scored_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     scores = scoreData;
 
     if (release.source_adapter_id) {
@@ -48,11 +40,9 @@ export async function GET(
         .from("source_adapters")
         .select("name, reliability_score, last_success_at, last_error")
         .eq("id", release.source_adapter_id)
-        .single();
+        .maybeSingle();
       sourceReliability = source;
     }
-  } catch {
-    // use defaults
   }
 
   return NextResponse.json({ release, updates, scores, sourceReliability });

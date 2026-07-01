@@ -1,13 +1,5 @@
 import type { Release, NotificationChannel, PriorityLevel } from "@/types";
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
-
-function getClient() {
-  try {
-    return createServiceClient();
-  } catch {
-    return createAnonServiceClient();
-  }
-}
+import { getSupabaseClient } from "@/lib/supabase/admin";
 
 export interface NotificationPayload {
   title: string;
@@ -126,7 +118,9 @@ export class NotificationService {
   }
 
   async processQueue(): Promise<number> {
-    const supabase = getClient();
+    const supabase = getSupabaseClient();
+    if (!supabase) return 0;
+
     const { data: pending } = await supabase
       .from("notifications")
       .select("*")
@@ -148,8 +142,9 @@ export class NotificationService {
   }
 
   private async saveNotification(payload: NotificationPayload, status: "pending" | "sent"): Promise<void> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
     try {
-      const supabase = getClient();
       await supabase.from("notifications").insert({
         user_id: payload.userId ?? null,
         release_id: payload.releaseId ?? null,
@@ -188,14 +183,16 @@ export class NotificationService {
         success = true;
     }
 
-    try {
-      const supabase = getClient();
-      await supabase.from("notifications").update({
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from("notifications").update({
         status: success ? "sent" : "failed",
         sent_at: success ? new Date().toISOString() : null,
-      }).eq("id", notification.id);
-    } catch {
-      // ignore
+        }).eq("id", notification.id);
+      } catch {
+        // ignore
+      }
     }
 
     return success;

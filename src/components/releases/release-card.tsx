@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ExternalLink, MapPin } from "lucide-react";
-import type { Release } from "@/types";
-import { cn, formatCountdown, formatDate, priorityColor, formatPrice } from "@/lib/utils";
+import type { EnrichedRelease } from "@/lib/data/enrich-releases";
+import { cn, formatCountdown, formatDate, priorityColor } from "@/lib/utils";
+import { PriceIntel } from "./price-intel";
 
 interface ReleaseCardProps {
-  release: Release;
+  release: EnrichedRelease;
   compact?: boolean;
   showUpdate?: string;
 }
@@ -14,87 +15,60 @@ export function ReleaseCard({ release, compact, showUpdate }: ReleaseCardProps) 
   const eventDate = release.release_starts_at ?? release.presale_starts_at ?? release.general_sale_starts_at;
 
   return (
-    <Link
-      href={`/dashboard/releases/${release.id}`}
-      className="block p-4 rounded-xl bg-titan-surface border border-titan-border hover:border-zinc-600 transition-all group"
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={cn("w-2 h-2 rounded-full shrink-0", {
-            "bg-red-500": release.priority_level === "EXTREME",
-            "bg-orange-500": release.priority_level === "HIGH",
-            "bg-yellow-500": release.priority_level === "MEDIUM",
-            "bg-green-500": release.priority_level === "LOW",
-          })} />
-          <h3 className="font-medium text-sm truncate group-hover:text-white transition-colors">
-            {release.title}
-          </h3>
-        </div>
-        <span className={cn("text-xs px-2 py-0.5 rounded border shrink-0", priorityColor(release.priority_level))}>
-          {release.priority_level}
-        </span>
-      </div>
-
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500 mb-3">
-        {release.release_categories && (
-          <span className="text-zinc-400">{release.release_categories.name}</span>
-        )}
-        {location && (
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {location}
-          </span>
-        )}
-        <span>{formatDate(eventDate)}</span>
-      </div>
-
-      {!compact && (
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <ScorePill label="Hype" value={release.hype_score} />
-          <ScorePill label="Sellout" value={release.sellout_probability} suffix="%" />
-          <div className="text-center">
-            <div className="text-lg font-mono font-bold text-titan-accent">
-              {formatCountdown(eventDate)}
-            </div>
-            <div className="text-[10px] text-zinc-500 uppercase">Countdown</div>
+    <div className="p-3 rounded-xl bg-titan-surface border border-titan-border hover:border-zinc-500 transition-all group">
+      <Link href={`/dashboard/releases/${release.id}`} className="block">
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", {
+              "bg-red-500": release.priority_level === "EXTREME",
+              "bg-orange-500": release.priority_level === "HIGH",
+              "bg-yellow-500": release.priority_level === "MEDIUM",
+              "bg-green-500": release.priority_level === "LOW",
+            })} />
+            <h3 className="font-medium text-sm truncate group-hover:text-white transition-colors">
+              {release.title}
+            </h3>
           </div>
+          <span className={cn("text-[10px] px-1.5 py-0.5 rounded border shrink-0", priorityColor(release.priority_level))}>
+            {release.priority_level}
+          </span>
         </div>
-      )}
 
-      {compact && (
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-mono text-titan-accent font-bold">{formatCountdown(eventDate)}</span>
-          <span className="text-zinc-500">Hype {release.hype_score}</span>
+        <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-zinc-500 mb-2">
+          {release.release_categories && <span className="text-zinc-400">{release.release_categories.name}</span>}
+          {location && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{location}</span>}
+          <span>{formatDate(eventDate)}</span>
         </div>
-      )}
 
-      {showUpdate && (
-        <div className="mt-2 pt-2 border-t border-titan-border text-xs text-zinc-500 truncate">
-          {showUpdate}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex gap-3 text-[10px] font-mono">
+            <span>Hype <b className="text-zinc-200">{Math.round(release.hype_score)}</b></span>
+            <span>Sellout <b className="text-zinc-200">{Math.round(release.sellout_probability)}%</b></span>
+            {release.expected_roi_mid != null && (
+              <span className="text-titan-accent">ROI <b>+{release.expected_roi_mid}%</b></span>
+            )}
+          </div>
+          <span className="font-mono text-xs font-bold text-titan-accent shrink-0">{formatCountdown(eventDate)}</span>
         </div>
-      )}
 
-      {release.official_url && !compact && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-titan-accent">
-          <ExternalLink className="w-3 h-3" />
-          Official link ready
-        </div>
-      )}
+        <PriceIntel release={release} compact={compact} showLabel={!compact} />
 
-      {!compact && (release.price_min || release.price_max) && (
-        <div className="mt-1 text-xs text-zinc-500">
-          {formatPrice(release.price_min, release.price_max, release.currency)}
-        </div>
-      )}
-    </Link>
-  );
-}
+        {showUpdate && (
+          <div className="mt-2 pt-1.5 border-t border-titan-border text-[10px] text-zinc-500 truncate">{showUpdate}</div>
+        )}
+      </Link>
 
-function ScorePill({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) {
-  return (
-    <div className="text-center">
-      <div className="text-sm font-mono font-semibold">{Math.round(value)}{suffix}</div>
-      <div className="text-[10px] text-zinc-500 uppercase">{label}</div>
+      {release.official_url && (
+        <a
+          href={release.official_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 flex items-center gap-1 text-[10px] text-titan-accent hover:underline w-fit"
+        >
+          <ExternalLink className="w-2.5 h-2.5" />
+          Official link
+        </a>
+      )}
     </div>
   );
 }

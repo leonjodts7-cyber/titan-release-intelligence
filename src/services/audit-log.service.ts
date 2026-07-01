@@ -1,12 +1,4 @@
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
-
-function getClient() {
-  try {
-    return createServiceClient();
-  } catch {
-    return createAnonServiceClient();
-  }
-}
+import { getSupabaseClient } from "@/lib/supabase/admin";
 
 export class AuditLogService {
   async log(params: {
@@ -18,8 +10,12 @@ export class AuditLogService {
     newData?: unknown;
     ipAddress?: string;
   }): Promise<void> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      console.log(`[AUDIT] ${params.action} on ${params.entityType}:${params.entityId}`);
+      return;
+    }
     try {
-      const supabase = getClient();
       await supabase.from("audit_logs").insert({
         user_id: params.userId ?? null,
         action: params.action,

@@ -1,13 +1,5 @@
 import type { Release, ReleaseFilters } from "@/types";
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
-
-function getClient() {
-  try {
-    return createServiceClient();
-  } catch {
-    return createAnonServiceClient();
-  }
-}
+import { getSupabaseClient } from "@/lib/supabase/admin";
 
 const RELEASE_SELECT = `
   *,
@@ -21,18 +13,13 @@ const RELEASE_SELECT = `
 `;
 
 export async function getReleases(filters: ReleaseFilters = {}): Promise<Release[]> {
-  const supabase = getClient();
+  const supabase = getSupabaseClient();
+  if (!supabase) return getMockReleases(filters);
+
   let query = supabase.from("releases").select(RELEASE_SELECT);
 
-  if (filters.category) {
-    query = query.eq("release_categories.slug", filters.category);
-  }
-  if (filters.priority) {
-    query = query.eq("priority_level", filters.priority);
-  }
-  if (filters.status) {
-    query = query.eq("status", filters.status);
-  }
+  if (filters.priority) query = query.eq("priority_level", filters.priority);
+  if (filters.status) query = query.eq("status", filters.status);
   if (filters.search) {
     query = query.textSearch("search_vector", filters.search, { type: "websearch" });
   }
@@ -58,11 +45,13 @@ export async function getReleases(filters: ReleaseFilters = {}): Promise<Release
     console.error("getReleases error:", error.message);
     return getMockReleases(filters);
   }
-  return (data as Release[]) ?? [];
+  return (data as Release[])?.length ? (data as Release[]) : getMockReleases(filters);
 }
 
 export async function getReleaseById(id: string): Promise<Release | null> {
-  const supabase = getClient();
+  const supabase = getSupabaseClient();
+  if (!supabase) return getMockReleases().find((r) => r.id === id) ?? null;
+
   const { data, error } = await supabase
     .from("releases")
     .select(RELEASE_SELECT)
@@ -70,14 +59,15 @@ export async function getReleaseById(id: string): Promise<Release | null> {
     .single();
 
   if (error) {
-    const mock = getMockReleases().find((r) => r.id === id);
-    return mock ?? null;
+    return getMockReleases().find((r) => r.id === id) ?? null;
   }
   return data as Release;
 }
 
 export async function getReleaseBySlug(slug: string): Promise<Release | null> {
-  const supabase = getClient();
+  const supabase = getSupabaseClient();
+  if (!supabase) return getMockReleases().find((r) => r.slug === slug) ?? null;
+
   const { data, error } = await supabase
     .from("releases")
     .select(RELEASE_SELECT)
@@ -85,8 +75,7 @@ export async function getReleaseBySlug(slug: string): Promise<Release | null> {
     .single();
 
   if (error) {
-    const mock = getMockReleases().find((r) => r.slug === slug);
-    return mock ?? null;
+    return getMockReleases().find((r) => r.slug === slug) ?? null;
   }
   return data as Release;
 }
@@ -279,6 +268,26 @@ export function getMockReleases(filters: ReleaseFilters = {}): Release[] {
       release_categories: { name: "Sport Tickets", slug: "sport-tickets" },
       sports_leagues: { name: "Formula 1" },
       countries: { name: "Belgium", code: "BE" }, cities: { name: "Spa" },
+    },
+    {
+      id: "11", title: "UFC 315 — Title Fight Night", slug: "ufc-315-title-fight",
+      category_id: "c2", brand_id: null, artist_id: null, league_id: "l5",
+      team_home_id: null, team_away_id: null, venue_id: "v4", country_id: "co5", city_id: "ci5",
+      release_type: "ticket", status: "announced",
+      official_url: "https://www.ufc.com/tickets",
+      source_url: "https://www.ufc.com", image_url: null,
+      description: "UFC 315 championship event — high demand PPV arena tickets",
+      announced_at: addDays(-4), presale_starts_at: addDays(8), general_sale_starts_at: addDays(15),
+      release_starts_at: addDays(60), release_ends_at: null, timezone: "America/Toronto",
+      price_min: 150, price_max: 1200, currency: "USD", stock_estimate: null, capacity_estimate: 19500,
+      hype_score: 91, demand_score: 93, urgency_score: 55, sellout_probability: 96,
+      resale_interest_score: 94, confidence_score: 88, priority_level: "EXTREME",
+      last_checked_at: now.toISOString(), last_changed_at: addDays(-2),
+      source_adapter_id: "s9", external_id: null, created_at: addDays(-4), updated_at: addDays(-2),
+      release_categories: { name: "Sport Tickets", slug: "sport-tickets" },
+      sports_leagues: { name: "UFC" },
+      countries: { name: "Canada", code: "CA" }, cities: { name: "Toronto" },
+      venues: { name: "Scotiabank Arena", capacity: 19500 },
     },
   ];
 

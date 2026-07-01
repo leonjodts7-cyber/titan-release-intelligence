@@ -1,12 +1,26 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import type { Release, ReleaseFilters } from "@/types";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import type { ReleaseFilters } from "@/types";
+import type { EnrichedRelease } from "@/lib/data/enrich-releases";
+import { sortByRoi } from "@/lib/data/enrich-releases";
 import { ReleaseCard } from "@/components/releases/release-card";
 import { SearchBar } from "@/components/search/search-bar";
 
-export function ReleasesClient({ initialReleases }: { initialReleases: Release[] }) {
-  const [filters, setFilters] = useState<ReleaseFilters>({ sort: "priority" });
+export function ReleasesClient({ initialReleases }: { initialReleases: EnrichedRelease[] }) {
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState<ReleaseFilters>({
+    sort: (searchParams.get("sort") as ReleaseFilters["sort"]) ?? "priority",
+    priority: (searchParams.get("priority") as ReleaseFilters["priority"]) ?? undefined,
+  });
+
+  useEffect(() => {
+    setFilters({
+      sort: (searchParams.get("sort") as ReleaseFilters["sort"]) ?? "priority",
+      priority: (searchParams.get("priority") as ReleaseFilters["priority"]) ?? undefined,
+    });
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     let result = [...initialReleases];
@@ -33,6 +47,9 @@ export function ReleasesClient({ initialReleases }: { initialReleases: Release[]
       case "sellout":
         result.sort((a, b) => b.sellout_probability - a.sellout_probability);
         break;
+      case "roi":
+        result = sortByRoi(result);
+        break;
       default: {
         const order = { EXTREME: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
         result.sort((a, b) =>
@@ -46,9 +63,9 @@ export function ReleasesClient({ initialReleases }: { initialReleases: Release[]
   }, [initialReleases, filters]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SearchBar onSearch={setFilters} initialFilters={filters} />
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
         {filtered.map((r) => <ReleaseCard key={r.id} release={r} />)}
       </div>
       {filtered.length === 0 && (

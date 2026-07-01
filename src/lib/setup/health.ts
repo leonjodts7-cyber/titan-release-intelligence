@@ -1,56 +1,39 @@
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
+import { getSupabaseClient, isSupabaseConfigured, isDemoMode } from "@/lib/supabase/client-factory";
+import type { SetupHealth } from "@/types";
 
-export interface SetupHealth {
-  gitBranch: string;
-  gitRemoteConfigured: boolean;
-  gitRemoteInstructions: string | null;
-  supabaseConnected: boolean;
-  serviceRoleAvailable: boolean;
-  tablesFound: boolean;
-  seedDataFound: boolean;
-  openaiConfigured: boolean;
-  discordConfigured: boolean;
-  telegramConfigured: boolean;
-  resendConfigured: boolean;
-  cronSecretConfigured: boolean;
-  ticketmasterConfigured: boolean;
-  rssFeedsConfigured: boolean;
-  errors: string[];
-}
+export type { SetupHealth } from "@/types";
 
 export async function checkSetupHealth(): Promise<SetupHealth> {
   const errors: string[] = [];
+  const demoMode = isDemoMode();
   const serviceRoleAvailable = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-  const anonAvailable = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
   let supabaseConnected = false;
   let tablesFound = false;
   let seedDataFound = false;
 
-  if (anonAvailable || serviceRoleAvailable) {
+  const supabase = getSupabaseClient();
+  if (supabase) {
     try {
-      const client = serviceRoleAvailable ? createServiceClient() : createAnonServiceClient();
-      const { error: pingError } = await client.from("releases").select("id", { count: "exact", head: true });
+      const { error: pingError } = await supabase.from("releases").select("id", { count: "exact", head: true });
       supabaseConnected = !pingError;
       if (pingError) errors.push(`Supabase ping: ${pingError.message}`);
-      else tablesFound = true;
-
-      if (supabaseConnected) {
-        const { count } = await client.from("releases").select("id", { count: "exact", head: true });
+      else {
+        tablesFound = true;
+        const { count } = await supabase.from("releases").select("id", { count: "exact", head: true });
         seedDataFound = (count ?? 0) >= 5;
       }
     } catch (e) {
       errors.push(e instanceof Error ? e.message : "Supabase connection failed");
     }
-  } else {
-    errors.push("Missing NEXT_PUBLIC_SUPABASE_URL or keys in .env.local");
+  } else if (!isSupabaseConfigured()) {
+    errors.push("Demo mode: Supabase not configured — using mock data");
   }
 
   return {
+    demoMode,
     gitBranch: "main",
     gitRemoteConfigured: false,
     gitRemoteInstructions: "git remote add origin <repo-url>\ngit push -u origin main",

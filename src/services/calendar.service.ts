@@ -1,19 +1,13 @@
 import type { Release } from "@/types";
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
-
-function getClient() {
-  try {
-    return createServiceClient();
-  } catch {
-    return createAnonServiceClient();
-  }
-}
+import { getSupabaseClient } from "@/lib/supabase/admin";
 
 export class CalendarService {
   async addReleaseEvents(release: Release): Promise<void> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
     const events = this.buildEvents(release);
     try {
-      const supabase = getClient();
       for (const event of events) {
         await supabase.from("calendar_events").upsert(
           {
@@ -29,7 +23,7 @@ export class CalendarService {
         );
       }
     } catch {
-      // Calendar events stored in DB when available
+      // Calendar events stored when DB available
     }
   }
 
@@ -73,40 +67,6 @@ export class CalendarService {
     }
 
     return events;
-  }
-
-  async getEvents(filter: "today" | "tomorrow" | "week" | "month" | "extreme" = "week") {
-    const now = new Date();
-    let start = now;
-    let end = new Date(now.getTime() + 7 * 86400000);
-
-    switch (filter) {
-      case "today":
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-        break;
-      case "tomorrow":
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
-        break;
-      case "month":
-        end = new Date(now.getTime() + 30 * 86400000);
-        break;
-    }
-
-    try {
-      const supabase = getClient();
-      let query = supabase
-        .from("calendar_events")
-        .select("*, releases(*, release_categories(name))")
-        .gte("starts_at", start.toISOString())
-        .lte("starts_at", end.toISOString())
-        .order("starts_at", { ascending: true });
-
-      const { data } = await query;
-      return data ?? [];
-    } catch {
-      return [];
-    }
   }
 }
 

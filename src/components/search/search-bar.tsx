@@ -55,6 +55,7 @@ export function SearchBar({ onSearch, initialFilters }: SearchBarProps) {
         <option value="date">Sort: Date</option>
         <option value="hype">Sort: Hype</option>
         <option value="sellout">Sort: Sellout</option>
+        <option value="roi">Sort: ROI</option>
       </select>
       <button
         type="submit"

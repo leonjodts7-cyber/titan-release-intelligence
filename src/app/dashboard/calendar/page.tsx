@@ -1,13 +1,13 @@
 import { getReleases } from "@/lib/data/releases";
+import { enrichReleases } from "@/lib/data/enrich-releases";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { ReleaseCard } from "@/components/releases/release-card";
-import { formatDate, formatCountdown } from "@/lib/utils";
-import { isWithinDays } from "@/lib/utils";
+import { formatDate, formatCountdown, isWithinDays } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
-  const releases = await getReleases({ sort: "date" });
+  const releases = enrichReleases(await getReleases({ sort: "date" }));
   const today = releases.filter((r) => isWithinDays(r.release_starts_at, 1));
   const thisWeek = releases.filter((r) => isWithinDays(r.release_starts_at, 7));
   const extreme = releases.filter((r) => r.priority_level === "EXTREME");

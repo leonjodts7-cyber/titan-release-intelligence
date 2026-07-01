@@ -73,15 +73,4 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose
   );
 }
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
-  );
-}
-
 export { Menu };

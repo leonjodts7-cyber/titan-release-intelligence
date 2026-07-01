@@ -9,17 +9,11 @@ import { notificationService } from "./notification.service";
 import { calendarService } from "./calendar.service";
 import { auditLogService } from "./audit-log.service";
 import { watchlistMatcherService } from "./watchlist-matcher.service";
-import { createServiceClient, createAnonServiceClient } from "@/lib/supabase/admin";
+import { getSupabaseClient } from "@/lib/supabase/admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { resaleIntelligenceService } from "./resale-intelligence.service";
 import { slugify } from "@/lib/utils";
 import type { Release } from "@/types";
-
-function getClient() {
-  try {
-    return createServiceClient();
-  } catch {
-    return createAnonServiceClient();
-  }
-}
 
 export interface PipelineResult {
   itemsFound: number;
@@ -31,7 +25,7 @@ export interface PipelineResult {
 }
 
 async function writeScanLog(
-  supabase: ReturnType<typeof getClient>,
+  supabase: SupabaseClient,
   jobId: string | null,
   sourceAdapterId: string,
   level: string,
@@ -51,6 +45,10 @@ async function writeScanLog(
   }
 }
 
+function writeScanLogDemo(sourceAdapterId: string, message: string) {
+  console.log(`[TITAN:scan:${sourceAdapterId}] ${message}`);
+}
+
 export class PipelineOrchestrator {
   async runScan(sourceAdapter: SourceAdapter): Promise<PipelineResult> {
     const result: PipelineResult = {
@@ -61,35 +59,43 @@ export class PipelineOrchestrator {
       errors: [],
     };
 
-    const supabase = getClient();
+    const supabase = getSupabaseClient();
     let jobId: string | null = null;
 
-    try {
-      const { data: job } = await supabase
-        .from("scan_jobs")
-        .insert({
-          source_adapter_id: sourceAdapter.id,
-          status: "running",
-          started_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      jobId = job?.id ?? null;
-    } catch {
-      // Continue without job tracking
+    if (supabase) {
+      try {
+        const { data: job } = await supabase
+          .from("scan_jobs")
+          .insert({
+            source_adapter_id: sourceAdapter.id,
+            status: "running",
+            started_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+        jobId = job?.id ?? null;
+      } catch {
+        // Continue without job tracking
+      }
     }
 
     try {
-      // SOURCE SCAN → PARSE → NORMALIZE
       const { items: rawItems, error, mode } = await sourceScannerService.scanAdapter(sourceAdapter);
       result.mode = mode;
       if (error) result.errors.push(error);
-      await writeScanLog(supabase, jobId, sourceAdapter.id, error ? "error" : "info",
-        error ?? `Scan mode: ${mode}, found ${rawItems.length} items`, { mode });
 
       const normalized = normalizerService.normalizeAll(rawItems);
       const enriched = enrichmentService.enrichAll(normalized);
       result.itemsFound = enriched.length;
+
+      if (!supabase) {
+        result.itemsSkipped = enriched.length;
+        writeScanLogDemo(sourceAdapter.id, `Demo scan: ${enriched.length} items (${mode})`);
+        return result;
+      }
+
+      await writeScanLog(supabase, jobId, sourceAdapter.id, error ? "error" : "info",
+        error ?? `Scan mode: ${mode}, found ${rawItems.length} items`, { mode });
 
       const { data: existingReleases } = await supabase
         .from("releases")
@@ -118,6 +124,10 @@ export class PipelineOrchestrator {
         });
 
         const slug = item.slug ?? slugify(item.title);
+        const resale = resaleIntelligenceService.analyze({
+          ...item,
+          ...scores,
+        });
         const { data: created, error: createError } = await supabase
           .from("releases")
           .insert({
@@ -148,6 +158,21 @@ export class PipelineOrchestrator {
             resale_interest_score: scores.resale_interest_score,
             confidence_score: scores.confidence_score,
             priority_level: scores.priority_level,
+            estimated_resale_low: resale.estimated_resale_low,
+            estimated_resale_mid: resale.estimated_resale_mid,
+            estimated_resale_high: resale.estimated_resale_high,
+            expected_profit_low: resale.expected_profit_low,
+            expected_profit_mid: resale.expected_profit_mid,
+            expected_profit_high: resale.expected_profit_high,
+            expected_roi_low: resale.expected_roi_low,
+            expected_roi_mid: resale.expected_roi_mid,
+            expected_roi_high: resale.expected_roi_high,
+            resale_confidence_score: resale.resale_confidence_score,
+            market_liquidity_score: resale.market_liquidity_score,
+            demand_pressure_score: resale.demand_pressure_score,
+            resale_risk_level: resale.resale_risk_level,
+            resale_explanation: resale.resale_explanation,
+            resale_is_estimated: true,
             last_checked_at: new Date().toISOString(),
           })
           .select("*")
@@ -268,7 +293,7 @@ export class PipelineOrchestrator {
       const message = err instanceof Error ? err.message : "Pipeline error";
       result.errors.push(message);
 
-      if (jobId) {
+      if (jobId && supabase) {
         await supabase.from("scan_jobs").update({
           status: "failed",
           finished_at: new Date().toISOString(),
@@ -276,10 +301,12 @@ export class PipelineOrchestrator {
         }).eq("id", jobId);
       }
 
-      await supabase.from("source_adapters").update({
-        last_scan_at: new Date().toISOString(),
-        last_error: message,
-      }).eq("id", sourceAdapter.id);
+      if (supabase) {
+        await supabase.from("source_adapters").update({
+          last_scan_at: new Date().toISOString(),
+          last_error: message,
+        }).eq("id", sourceAdapter.id);
+      }
     }
 
     return result;

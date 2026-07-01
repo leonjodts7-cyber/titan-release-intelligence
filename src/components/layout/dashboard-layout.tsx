@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sidebar, Menu } from "@/components/layout/sidebar";
+import { DemoModeBanner } from "@/components/layout/demo-banner";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -16,6 +17,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </button>
           <span className="font-bold">TITAN</span>
         </div>
+        <DemoModeBanner />
         <main className="flex-1 overflow-auto">
           {children}
         </main>
