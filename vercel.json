@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/scan",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/ingest",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/rollover",
+      "schedule": "0 4 * * *"
     }
   ]
 }

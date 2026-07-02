@@ -20,7 +20,7 @@ export function ReleaseCard({ release, compact, showUpdate, hideProfit }: Releas
 
   return (
     <div className="p-3 rounded-xl bg-titan-surface border border-titan-border hover:border-zinc-500 transition-all group">
-      <Link href={`/dashboard/releases/${release.id}`} className="block">
+      <Link href={`/dashboard/drops/${release.id}`} className="block">
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="flex items-start gap-2 min-w-0 flex-1">
             <span className={cn("w-1.5 h-1.5 rounded-full shrink-0 mt-1.5", {

@@ -7,7 +7,7 @@ import type { MonitoringSnapshot } from "@/lib/data/monitoring";
 import type { SourceAdapter, ScanJob } from "@/types";
 import { IntelStat } from "@/components/intelligence/intel-stat";
 import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 const TABS = [
   { id: "monitoring", labelKey: "systeem.tabMonitoring", href: "/dashboard/systeem" },
@@ -46,10 +46,15 @@ function SysteemTabs({
       </div>
 
       {tab === "monitoring" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className={monitoring.pipeline_healthy ? "intel-card border-emerald-500/20" : "intel-card border-red-500/30"}>
             <p className="text-xs">
               Pipeline: {monitoring.pipeline_healthy ? "Gezond" : "Verstoord"}
+              {monitoring.last_ingest_at && (
+                <span className="text-titan-muted ml-2">
+                  · {t("today.lastIngest", { when: formatDate(monitoring.last_ingest_at) })}
+                </span>
+              )}
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
@@ -58,6 +63,66 @@ function SysteemTabs({
             <IntelStat label="Bronnen online" value={monitoring.sources_online} />
             <IntelStat label="Scans (1u)" value={monitoring.scans_last_hour} />
           </div>
+
+          <section>
+            <h3 className="intel-section-title mb-2">{t("systeem.tabSources")}</h3>
+            <div className="overflow-x-auto rounded-lg border border-titan-border">
+              <table className="w-full text-xs">
+                <thead className="bg-titan-bg text-titan-muted">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">{t("systeem.sourceName")}</th>
+                    <th className="text-left px-3 py-2 font-medium">{t("systeem.sourceStatus")}</th>
+                    <th className="text-left px-3 py-2 font-medium">{t("systeem.sourceLastScan")}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t("systeem.sourceItemsFound")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monitoring.source_rows.map((row) => (
+                    <tr key={row.id} className="border-t border-titan-border">
+                      <td className="px-3 py-2">{row.name}</td>
+                      <td className={cn("px-3 py-2", row.online ? "text-emerald-400" : "text-red-400")}>
+                        {row.online ? t("systeem.online") : t("systeem.offline")}
+                      </td>
+                      <td className="px-3 py-2 text-titan-muted font-mono">
+                        {row.last_scan_at ? formatDate(row.last_scan_at) : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono">{row.items_found}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="intel-section-title mb-2">{t("systeem.recentScans")}</h3>
+            <ul className="space-y-1 text-xs">
+              {monitoring.recent_scan_logs.map((log) => (
+                <li key={log.id} className="px-3 py-2 rounded-lg border border-titan-border bg-titan-surface flex justify-between gap-2">
+                  <span>
+                    <span className="text-titan-muted">{log.source_name}</span> — {log.message}
+                  </span>
+                  <span className="text-titan-muted font-mono shrink-0">{formatDate(log.created_at)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="intel-section-title mb-2">{t("systeem.errors24h")}</h3>
+            {monitoring.errors_24h.length === 0 ? (
+              <p className="text-xs text-titan-muted">{t("systeem.noErrors")}</p>
+            ) : (
+              <ul className="space-y-1 text-xs">
+                {monitoring.errors_24h.map((log) => (
+                  <li key={log.id} className="px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300">
+                    <span className="font-medium">{log.source_name}</span> — {log.message}
+                    <span className="text-titan-muted ml-2 font-mono">{formatDate(log.created_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       )}
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { X } from "lucide-react";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { getDropMeta } from "@/lib/drop";
@@ -83,6 +84,13 @@ export function DropDetailDrawer({ release, open, onClose }: DropDetailDrawerPro
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <Link
+            href={`/dashboard/drops/${release.id}`}
+            className="text-xs text-titan-accent hover:underline block"
+            onClick={onClose}
+          >
+            {t("dropDetail.viewFull")} →
+          </Link>
           {groups.map((g) => (
             <section key={g.title}>
               <h3 className="intel-section-title mb-2">{g.title}</h3>

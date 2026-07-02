@@ -1,6 +1,7 @@
-import type { Release, ReleaseFilters } from "@/types";
+import type { Release, ReleaseFilters, BuyLocation, SaleType } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase/admin";
 import { generateMockReleases } from "./mock-releases";
+import { applyDefaultDropFilters } from "@/lib/drops/filter";
 
 const RELEASE_SELECT = `
   *,
@@ -15,7 +16,9 @@ const RELEASE_SELECT = `
 
 export async function getReleases(filters: ReleaseFilters = {}): Promise<Release[]> {
   const supabase = getSupabaseClient();
-  if (!supabase) return filterMockReleases(getMockReleases(), filters);
+  if (!supabase) return applyDefaultDropFilters(filterMockReleases(getMockReleases(), filters), {
+    includePast: filters.includePast,
+  });
 
   let query = supabase.from("releases").select(RELEASE_SELECT);
 
@@ -45,9 +48,14 @@ export async function getReleases(filters: ReleaseFilters = {}): Promise<Release
   const { data, error } = await query;
   if (error) {
     console.error("getReleases error:", error.message);
-    return filterMockReleases(getMockReleases(), filters);
+    return applyDefaultDropFilters(filterMockReleases(getMockReleases(), filters), {
+      includePast: filters.includePast,
+    });
   }
-  return (data as Release[])?.length ? (data as Release[]) : filterMockReleases(getMockReleases(), filters);
+  const rows = (data as Release[])?.length ? (data as Release[]) : getMockReleases();
+  return applyDefaultDropFilters(filterMockReleases(rows, filters), {
+    includePast: filters.includePast,
+  });
 }
 
 export async function getReleaseById(id: string): Promise<Release | null> {
@@ -83,6 +91,10 @@ export async function getReleaseBySlug(slug: string): Promise<Release | null> {
 }
 
 let _mockCache: Release[] | null = null;
+
+export function invalidateMockCache(): void {
+  _mockCache = null;
+}
 
 export function getMockReleases(): Release[] {
   if (!_mockCache) _mockCache = generateMockReleases();

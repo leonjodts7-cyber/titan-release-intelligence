@@ -1,3 +1,12 @@
+export interface BuyLocation {
+  name: string;
+  type: "online" | "fysiek" | "raffle" | "preorder";
+  url?: string;
+  country?: string;
+  note?: string;
+}
+
+export type SaleType = "drop" | "raffle" | "preorder" | "voorverkoop" | "algemene_verkoop";
 export type PriorityLevel = "LOW" | "MEDIUM" | "HIGH" | "EXTREME";
 export type ReleaseStatus = "rumored" | "announced" | "presale" | "on_sale" | "sold_out" | "cancelled" | "ended";
 export type ReleaseType = "ticket" | "product" | "merch" | "collectible" | "gaming" | "fashion" | "other";
@@ -49,6 +58,13 @@ export interface Release {
   drop_time_confirmed?: boolean;
   drop_timezone?: string;
   drop_event_type?: "preorder" | "release" | "presale" | "general_sale";
+  buy_locations?: BuyLocation[];
+  hype_reason?: string | null;
+  sale_type?: SaleType;
+  source_name?: string | null;
+  source_checked_at?: string | null;
+  external_source?: string | null;
+  external_source_id?: string | null;
   price_min: number | null;
   price_max: number | null;
   currency: string;
@@ -236,6 +252,17 @@ export interface NormalizedRelease {
   country_code?: string;
   city_name?: string;
   venue_name?: string;
+  drop_at?: string;
+  drop_time_confirmed?: boolean;
+  drop_timezone?: string;
+  drop_event_type?: "preorder" | "release" | "presale" | "general_sale";
+  buy_locations?: BuyLocation[];
+  hype_reason?: string;
+  sale_type?: SaleType;
+  source_name?: string;
+  source_checked_at?: string;
+  external_source?: string;
+  external_source_id?: string;
 }
 
 export interface AIScoreResult {
@@ -264,6 +291,7 @@ export interface ReleaseFilters {
   source?: string;
   sort?: "priority" | "date" | "hype" | "sellout" | "roi" | "opportunity";
   limit?: number;
+  includePast?: boolean;
 }
 
 export interface OpportunityFilters {

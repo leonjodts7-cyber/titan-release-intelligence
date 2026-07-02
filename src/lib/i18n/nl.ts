@@ -6,7 +6,7 @@ export const nl = {
   app: {
     name: "TITAN",
     tagline: "Intelligence",
-    version: "v4.0 · Intelligence Platform",
+    version: "v5.0 · Intelligence Platform",
     live: "TITAN INTELLIGENCE · LIVE",
     searchPlaceholder: "Zoek in intelligence…",
     searchHint: "Artiesten, events, Pokémon, sneakers, venues…",
@@ -18,6 +18,7 @@ export const nl = {
   nav: {
     today: "Vandaag",
     drops: "Drops",
+    knallers: "Knallers",
     market: "Markt",
     portfolio: "Portfolio",
     notifications: "Meldingen",
@@ -131,6 +132,7 @@ export const nl = {
     bestWeek: "Beste kansen deze week",
     systemStatus: "{online}/{total} bronnen online",
     lastScan: "Laatste scan {when}",
+    lastIngest: "Laatste ingest {when}",
     noScan: "Nog geen scan",
   },
   drops: {
@@ -145,6 +147,7 @@ export const nl = {
     catOther: "Overig",
     allTiers: "Alle tiers",
     confirmedOnly: "Alleen bevestigde tijden",
+    showPast: "Toon afgelopen",
     colDrop: "Drop",
     moreColumns: "Meer kolommen",
     fewerColumns: "Minder kolommen",
@@ -159,6 +162,21 @@ export const nl = {
       market: "Markt",
       pricing: "Prijzen",
     },
+  },
+  knallers: {
+    title: "Knallers",
+    intro: "De drops waar je dit jaar niet mag op missen.",
+    empty: "Geen knallers gevonden in de komende 12 maanden.",
+    topStore: "Belangrijkste kanaal: {store}",
+  },
+  dropDetail: {
+    about: "Over deze drop",
+    whereToBuy: "Waar te koop",
+    openStore: "Open winkel",
+    metrics: "Metrics",
+    related: "Gerelateerde drops",
+    sourceFreshness: "Bron: {source} · laatst gecheckt {when}",
+    viewFull: "Volledige detailpagina",
   },
   tooltips: {
     hype: "Hype: hoeveel buzz en aandacht rond deze drop.",
@@ -185,6 +203,15 @@ export const nl = {
     tabScans: "Scans",
     tabAdmin: "Beheer",
     tabAnalytics: "Analyses",
+    sourceName: "Bron",
+    sourceStatus: "Status",
+    sourceLastScan: "Laatste scan",
+    sourceItemsFound: "Gevonden",
+    recentScans: "Recente scans",
+    errors24h: "Fouten (24 uur)",
+    online: "Online",
+    offline: "Offline",
+    noErrors: "Geen fouten in de laatste 24 uur",
   },
   instellingen: {
     title: "Instellingen",
@@ -288,6 +315,7 @@ export const nl = {
     sold: "Verkocht",
     empty: "Nog geen posities — voeg je eerste flip toe.",
     linkRelease: "Release",
+    invested: "Geïnvesteerd",
   },
   feed: {
     title: "Live feed",
@@ -317,6 +345,9 @@ export const nl = {
     title: "Meldingen",
     empty: "Geen meldingen.",
     markRead: "Markeer als gelezen",
+    markAllRead: "Alles als gelezen markeren",
+    unreadCount: "{unread} ongelezen · {total} totaal",
+    channelInApp: "in-app",
   },
   monitoring: {
     title: "Monitoring",

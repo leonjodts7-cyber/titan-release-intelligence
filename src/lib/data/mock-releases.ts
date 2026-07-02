@@ -1,4 +1,5 @@
 import type { Release, ReleaseType, PriorityLevel, ReleaseStatus } from "@/types";
+import { enrichMockRelease } from "./release-mock-enrichment";
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -244,5 +245,26 @@ const MOCK_SPECS: MockSpec[] = [
 
 export function generateMockReleases(): Release[] {
   const now = new Date();
-  return MOCK_SPECS.map((spec, idx) => buildRelease(idx + 1, spec, now));
+  return MOCK_SPECS.map((spec, idx) => {
+    const dropAt = relativeDropAt(idx, now);
+    const enrichedSpec: MockSpec = {
+      ...spec,
+      dropAt,
+      dropTimeConfirmed: spec.dropTimeConfirmed ?? true,
+      dropTimezone: spec.dropTimezone ?? "Europe/Brussels",
+    };
+    return enrichMockRelease(buildRelease(idx + 1, enrichedSpec, now), idx);
+  });
+}
+
+function relativeDropAt(index: number, now: Date): string {
+  if (index < 3) {
+    const hours = [3, 18, 22][index] ?? 6;
+    return new Date(now.getTime() + hours * 3_600_000).toISOString();
+  }
+  const days = 2 + Math.floor((index / MOCK_SPECS.length) * 175);
+  const hour = [9, 10, 15][index % 3] ?? 9;
+  const d = new Date(now);
+  d.setUTCDate(d.getUTCDate() + days);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hour - 2, 0)).toISOString();
 }

@@ -207,7 +207,7 @@ export default function PortfolioPage() {
                   )}
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  {p.release_id && <Link href={`/dashboard/releases/${p.release_id}`} className="text-titan-accent">{t("portfolio.linkRelease")}</Link>}
+                  {p.release_id && <Link href={`/dashboard/drops/${p.release_id}`} className="text-titan-accent">{t("portfolio.linkRelease")}</Link>}
                   {p.status !== "sold" && (
                     <button onClick={() => setSellTarget(p)} className="text-[10px] border border-titan-border px-2 py-1 rounded">{t("terms.sell")}</button>
                   )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { filterOpportunities } from "@/lib/data/enrich-releases";
 import { sortByDropTime, getDropMeta, type DropCategory } from "@/lib/drop";
@@ -20,7 +20,14 @@ const CATEGORY_MAP: Record<string, DropCategory | undefined> = {
   other: "other",
 };
 
-export function DropsClient({ initialReleases }: { initialReleases: EnrichedRelease[] }) {
+export function DropsClient({
+  initialReleases,
+  includePast = false,
+}: {
+  initialReleases: EnrichedRelease[];
+  includePast?: boolean;
+}) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const defaultView = searchParams.get("view") === "calendar" ? "calendar" : "list";
   const [view, setView] = useState<ViewMode>(defaultView);
@@ -109,6 +116,21 @@ export function DropsClient({ initialReleases }: { initialReleases: EnrichedRele
             className="rounded border-titan-border"
           />
           {t("drops.confirmedOnly")}
+        </label>
+
+        <label className="flex items-center gap-1.5 text-xs text-titan-muted cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includePast}
+            onChange={(e) => {
+              const params = new URLSearchParams(searchParams.toString());
+              if (e.target.checked) params.set("showPast", "1");
+              else params.delete("showPast");
+              router.push(`/dashboard/drops?${params.toString()}`);
+            }}
+            className="rounded border-titan-border"
+          />
+          {t("drops.showPast")}
         </label>
       </div>
 

@@ -150,7 +150,7 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
                       return (
                         <td key={col.id} className="p-2 max-w-[220px]">
                           <Link
-                            href={`/dashboard/releases/${r.id}`}
+                            href={`/dashboard/drops/${r.id}`}
                             className="font-medium hover:text-titan-accent line-clamp-2 leading-snug"
                             title={r.title}
                           >

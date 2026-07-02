@@ -52,7 +52,7 @@ export function GlobalSearch() {
   const go = (id: string) => {
     setOpen(false);
     setQuery("");
-    router.push(`/dashboard/releases/${id}`);
+    router.push(`/dashboard/drops/${id}`);
   };
 
   return (

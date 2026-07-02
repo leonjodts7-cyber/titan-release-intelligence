@@ -36,7 +36,7 @@ export function MiniChart({
   const w = 100 / (data.length - 1 || 1);
   const trend = data[data.length - 1] >= data[0];
   const up = positive !== undefined ? positive : trend;
-  const stroke = up ? "var(--color-profit)" : "var(--color-loss)";
+  const stroke = up ? "var(--titan-profit)" : "var(--titan-loss)";
 
   const points = data
     .map((v, i) => {

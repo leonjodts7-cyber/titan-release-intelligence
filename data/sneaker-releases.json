@@ -1,0 +1,30 @@
+[
+  {
+    "title": "Air Jordan 4 'Military Blue'",
+    "category_slug": "limited-sneakers",
+    "release_type": "product",
+    "daysFromNow": 14,
+    "dropHour": 9,
+    "price_min": 210,
+    "price_max": 210,
+    "currency": "EUR",
+    "sale_type": "drop",
+    "buy_locations": [
+      { "name": "SNKRS", "type": "online", "url": "https://www.nike.com/launch", "country": "NL", "note": "09:00 CET" }
+    ]
+  },
+  {
+    "title": "New Balance 1906R 'Silver Metallic'",
+    "category_slug": "limited-sneakers",
+    "release_type": "product",
+    "daysFromNow": 28,
+    "dropHour": 10,
+    "price_min": 180,
+    "price_max": 180,
+    "currency": "EUR",
+    "sale_type": "drop",
+    "buy_locations": [
+      { "name": "New Balance EU", "type": "online", "url": "https://www.newbalance.eu", "country": "BE" }
+    ]
+  }
+]

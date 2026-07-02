@@ -83,7 +83,7 @@ export function AlertsClient({
           {events.map((e) => (
             <div key={e.id} className="p-2 rounded border border-titan-border/40 text-xs">
               <div className="flex justify-between gap-2">
-                <Link href={`/dashboard/releases/${e.release_id}`} className="text-zinc-200 hover:text-titan-accent truncate">{e.release_title}</Link>
+                <Link href={`/dashboard/drops/${e.release_id}`} className="text-zinc-200 hover:text-titan-accent truncate">{e.release_title}</Link>
                 <span className="text-[9px] text-zinc-600 shrink-0">{new Date(e.triggered_at).toLocaleString()}</span>
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5">{e.rule_name} — {e.message}</div>

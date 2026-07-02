@@ -56,7 +56,7 @@ export default async function TcgPage() {
                       return (
                         <tr key={r.id}>
                           <td>
-                            <Link href={`/dashboard/releases/${r.id}`} className="hover:text-titan-accent line-clamp-2" title={r.title}>
+                            <Link href={`/dashboard/drops/${r.id}`} className="hover:text-titan-accent line-clamp-2" title={r.title}>
                               {r.title}
                             </Link>
                           </td>

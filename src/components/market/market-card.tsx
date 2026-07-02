@@ -25,7 +25,7 @@ export function MarketCard({ release: r }: { release: EnrichedRelease }) {
   const marketEur = r.resale_eur_mid ?? (r.current_market_price != null ? toEur(r.current_market_price, r.currency) : null);
 
   return (
-    <Link href={`/dashboard/releases/${r.id}`} className="intel-card hover:border-zinc-600 transition-colors block">
+    <Link href={`/dashboard/drops/${r.id}`} className="intel-card hover:border-zinc-600 transition-colors block">
       <div className="flex justify-between gap-2 mb-2">
         <span className="text-xs font-medium line-clamp-2 leading-snug" title={r.title}>
           {r.title}

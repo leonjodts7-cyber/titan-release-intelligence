@@ -57,7 +57,7 @@ export function MarketClient({ releases }: { releases: EnrichedRelease[] }) {
               {tcg.slice(0, 20).map((r) => (
                 <tr key={r.id} className="border-t border-titan-border hover:bg-white/[0.02]">
                   <td className="p-2">
-                    <Link href={`/dashboard/releases/${r.id}`} className="hover:text-titan-accent">
+                    <Link href={`/dashboard/drops/${r.id}`} className="hover:text-titan-accent">
                       {r.title}
                     </Link>
                   </td>
@@ -65,7 +65,7 @@ export function MarketClient({ releases }: { releases: EnrichedRelease[] }) {
                   <td className="p-2 text-right font-mono text-profit">{formatEur(r.resale_eur_mid)}</td>
                   <td className="p-2 text-right font-mono">{r.net_roi_mid != null ? `${r.net_roi_mid}%` : "—"}</td>
                   <td className="p-2">
-                    <Link href={`/dashboard/releases/${r.id}`} className="text-titan-accent text-[10px]">
+                    <Link href={`/dashboard/drops/${r.id}`} className="text-titan-accent text-[10px]">
                       Detail →
                     </Link>
                   </td>

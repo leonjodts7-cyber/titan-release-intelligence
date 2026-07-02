@@ -3,6 +3,7 @@ import { getSourceAdapters, getScanJobs } from "@/lib/data/sources";
 import { getActivityFeed } from "@/lib/data/activity-feed";
 import { enrichReleases, sortByOpportunity } from "@/lib/data/enrich-releases";
 import { sortByDropTime, isDropTodayOrTomorrow, getDropAt } from "@/lib/drop";
+import { getLastIngestAt } from "@/lib/sources/ingest";
 import { IntelligenceLayout } from "@/components/layout/intelligence-layout";
 import { DropCard } from "@/components/drops/drop-card";
 import { LiveActivityPanel } from "@/components/intelligence/live-activity-panel";
@@ -34,6 +35,7 @@ export default async function VandaagPage() {
 
   const onlineSources = sources.filter((s) => s.enabled && !s.last_error).length;
   const lastScan = scans[0];
+  const lastIngest = getLastIngestAt();
 
   return (
     <IntelligenceLayout showFeed={false}>
@@ -83,6 +85,16 @@ export default async function VandaagPage() {
                 })
               : t("today.noScan")}
           </span>
+          {lastIngest && (
+            <>
+              <span>·</span>
+              <span>
+                {t("today.lastIngest", {
+                  when: formatDistanceToNow(new Date(lastIngest), { addSuffix: true, locale: nl }),
+                })}
+              </span>
+            </>
+          )}
         </div>
 
         <section className="xl:hidden">

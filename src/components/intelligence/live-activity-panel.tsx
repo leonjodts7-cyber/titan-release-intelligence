@@ -85,7 +85,7 @@ export function LiveActivityPanel({ initialItems }: { initialItems?: ActivityFee
               {item.source}
             </div>
             {item.release_id ? (
-              <Link href={`/dashboard/releases/${item.release_id}`} className="text-xs text-zinc-200 hover:text-titan-accent leading-snug block">
+              <Link href={`/dashboard/drops/${item.release_id}`} className="text-xs text-zinc-200 hover:text-titan-accent leading-snug block">
                 {item.headline}
               </Link>
             ) : (
