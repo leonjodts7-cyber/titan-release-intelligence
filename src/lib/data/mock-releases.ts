@@ -8,8 +8,25 @@ function addDays(base: Date, d: number): string {
   return new Date(base.getTime() + d * 86400000).toISOString();
 }
 
+/** Wall-clock in fixed UTC offset → ISO UTC (CEST = +2, CET = +1, GMT = 0, EST = -5) */
+function wallToUtc(y: number, m: number, d: number, h: number, min: number, utcOffsetHours: number): string {
+  return new Date(Date.UTC(y, m - 1, d, h - utcOffsetHours, min)).toISOString();
+}
+
+function fromNow(hours: number, minutes = 0): string {
+  const n = new Date();
+  n.setTime(n.getTime() + hours * 3_600_000 + minutes * 60_000);
+  n.setSeconds(0, 0);
+  return n.toISOString();
+}
+
+function dateOnlyUtc(y: number, m: number, d: number): string {
+  return new Date(Date.UTC(y, m - 1, d)).toISOString();
+}
+
+/** Legacy helper — date only, time unconfirmed */
 function fixedDate(year: number, month: number, day: number): string {
-  return new Date(Date.UTC(year, month - 1, day, 19, 0, 0)).toISOString();
+  return dateOnlyUtc(year, month, day);
 }
 
 interface MockSpec {
@@ -21,7 +38,13 @@ interface MockSpec {
   priceMin: number;
   priceMax: number;
   currency: string;
-  releaseAt: string;
+  /** @deprecated use dropAt */
+  releaseAt?: string;
+  dropAt?: string;
+  dropTimeConfirmed?: boolean;
+  dropTimezone?: string;
+  dropEventKind?: "preorder" | "release" | "presale" | "general_sale";
+  dateOnly?: boolean;
   presaleDaysBefore?: number;
   hype: number;
   demand: number;
@@ -47,8 +70,10 @@ interface MockSpec {
 }
 
 function buildRelease(id: number, spec: MockSpec, now: Date): Release {
-  const releaseTs = new Date(spec.releaseAt).getTime();
-  const daysUntil = Math.max(1, Math.ceil((releaseTs - now.getTime()) / 86400000));
+  const dropAt = spec.dropAt ?? spec.releaseAt ?? dateOnlyUtc(2026, 6, 1);
+  const dropConfirmed = spec.dropTimeConfirmed ?? (!spec.dateOnly && !isDateOnlyUtc(dropAt));
+  const dropTz = spec.dropTimezone ?? "Europe/Brussels";
+  const releaseTs = new Date(dropAt).getTime();
   const presaleOffset = spec.presaleDaysBefore ?? 14;
 
   return {
@@ -71,11 +96,15 @@ function buildRelease(id: number, spec: MockSpec, now: Date): Release {
     image_url: null,
     description: `${spec.title} — tracked by TITAN intelligence`,
     announced_at: addDays(now, -21),
-    presale_starts_at: addDays(new Date(spec.releaseAt), -presaleOffset),
-    general_sale_starts_at: addDays(new Date(spec.releaseAt), -Math.max(2, presaleOffset - 3)),
-    release_starts_at: spec.releaseAt,
+    presale_starts_at: addDays(new Date(dropAt), -presaleOffset),
+    general_sale_starts_at: addDays(new Date(dropAt), -Math.max(2, presaleOffset - 3)),
+    release_starts_at: dropAt,
     release_ends_at: null,
-    timezone: "UTC",
+    timezone: dropTz,
+    drop_at: dropAt,
+    drop_time_confirmed: dropConfirmed,
+    drop_timezone: dropTz,
+    drop_event_type: spec.dropEventKind ?? "release",
     price_min: spec.priceMin,
     price_max: spec.priceMax,
     currency: spec.currency,
@@ -111,9 +140,19 @@ function buildRelease(id: number, spec: MockSpec, now: Date): Release {
   };
 }
 
+function isDateOnlyUtc(iso: string): boolean {
+  const d = new Date(iso);
+  return d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0;
+}
+
 const MOCK_SPECS: MockSpec[] = [
+  // Near-term drops (dynamic — for countdown QA)
+  { title: "Nike Dunk Low Retro — SNKRS NL", slug: "dunk-low-snkrs-nl-live", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 120, priceMax: 120, currency: "EUR", dropAt: fromNow(3, 20), dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", hype: 88, demand: 86, sellout: 92, priority: "EXTREME", brand: "Nike", stock: 8000, marketPrice: 195 },
+  { title: "Pokémon Surging Sparks Booster Bundle", slug: "surging-sparks-bundle-soon", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 32, priceMax: 32, currency: "EUR", dropAt: fromNow(18, 0), dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", dropEventKind: "release", hype: 72, demand: 70, sellout: 78, priority: "HIGH", tcgName: "Pokémon", setName: "Surging Sparks", productType: "bundle", sealed: true, msrp: 32, marketPrice: 48, stock: 12000 },
+  { title: "Taylor Swift — Antwerp (Presale)", slug: "taylor-antwerp-presale", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 89, priceMax: 295, currency: "EUR", dropAt: fromNow(22, 30), dropTimeConfirmed: true, dropTimezone: "Europe/Brussels", dropEventKind: "presale", hype: 95, demand: 96, sellout: 97, priority: "EXTREME", artist: "Taylor Swift", city: "Antwerp", country: "Belgium", countryCode: "BE", capacity: 23000 },
+
   // Concerts (20)
-  { title: "Taylor Swift — London (Jun 2026)", slug: "taylor-swift-london-jun-2026", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 95, priceMax: 380, currency: "GBP", releaseAt: fixedDate(2026, 6, 12), hype: 96, demand: 97, sellout: 98, priority: "EXTREME", artist: "Taylor Swift", city: "London", country: "United Kingdom", countryCode: "GB", capacity: 90000, officialUrl: "https://www.ticketmaster.co.uk/taylor-swift-london" },
+  { title: "Taylor Swift — London (Jun 2026)", slug: "taylor-swift-london-jun-2026", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 95, priceMax: 380, currency: "GBP", dropAt: wallToUtc(2026, 6, 12, 10, 0, 1), dropTimeConfirmed: true, dropTimezone: "Europe/London", dropEventKind: "general_sale", hype: 96, demand: 97, sellout: 98, priority: "EXTREME", artist: "Taylor Swift", city: "London", country: "United Kingdom", countryCode: "GB", capacity: 90000, officialUrl: "https://www.ticketmaster.co.uk/taylor-swift-london" },
   { title: "Coldplay — Paris (Jul 2026)", slug: "coldplay-paris-jul-2026", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 78, priceMax: 240, currency: "EUR", releaseAt: fixedDate(2026, 7, 8), hype: 88, demand: 90, sellout: 92, priority: "HIGH", artist: "Coldplay", city: "Paris", country: "France", countryCode: "FR", capacity: 80000 },
   { title: "Drake — Toronto (Aug 2026)", slug: "drake-toronto-aug-2026", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 110, priceMax: 320, currency: "CAD", releaseAt: fixedDate(2026, 8, 15), hype: 82, demand: 84, sellout: 86, priority: "HIGH", artist: "Drake", city: "Toronto", country: "Canada", countryCode: "CA", capacity: 20000 },
   { title: "Travis Scott — Houston (Sep 2026)", slug: "travis-scott-houston-sep-2026", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 85, priceMax: 260, currency: "USD", releaseAt: fixedDate(2026, 9, 5), hype: 91, demand: 93, sellout: 94, priority: "EXTREME", artist: "Travis Scott", city: "Houston", country: "United States", countryCode: "US", capacity: 72000 },
@@ -157,7 +196,7 @@ const MOCK_SPECS: MockSpec[] = [
   { title: "Olympics Opening Ceremony 2028", slug: "olympics-opening-2028", category: "Sport Tickets", categorySlug: "sport-tickets", type: "ticket", priceMin: 200, priceMax: 1200, currency: "USD", releaseAt: fixedDate(2028, 7, 14), hype: 91, demand: 93, sellout: 94, priority: "EXTREME", league: "Olympics", city: "Los Angeles", country: "United States", countryCode: "US", capacity: 70000 },
 
   // Sneakers (15)
-  { title: "Air Jordan 1 Travis Scott Medium Olive", slug: "aj1-travis-medium-olive", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 150, priceMax: 150, currency: "EUR", releaseAt: fixedDate(2026, 4, 5), hype: 94, demand: 92, sellout: 96, priority: "EXTREME", brand: "Jordan", stock: 6000, marketPrice: 420 },
+  { title: "Air Jordan 1 Travis Scott Medium Olive", slug: "aj1-travis-medium-olive", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 150, priceMax: 150, currency: "EUR", dropAt: wallToUtc(2026, 4, 5, 9, 0, 2), dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", hype: 94, demand: 92, sellout: 96, priority: "EXTREME", brand: "Jordan", stock: 6000, marketPrice: 420 },
   { title: "Nike Dunk Low Panda Restock", slug: "dunk-low-panda-restock", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 110, priceMax: 110, currency: "EUR", releaseAt: fixedDate(2026, 3, 28), hype: 62, demand: 58, sellout: 68, priority: "LOW", brand: "Nike", stock: 85000, marketPrice: 125 },
   { title: "Nike Mercurial Superfly Elite", slug: "mercurial-superfly-elite", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 220, priceMax: 220, currency: "EUR", releaseAt: fixedDate(2026, 5, 10), hype: 78, demand: 75, sellout: 82, priority: "HIGH", brand: "Nike", stock: 4000, marketPrice: 310 },
   { title: "Nike Phantom GX Elite Drop", slug: "phantom-gx-elite", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 250, priceMax: 250, currency: "EUR", releaseAt: fixedDate(2026, 6, 2), hype: 74, demand: 71, sellout: 78, priority: "MEDIUM", brand: "Nike", stock: 3500, marketPrice: 295 },
@@ -174,8 +213,8 @@ const MOCK_SPECS: MockSpec[] = [
   { title: "Nike Zoom Vomero 5 Photon Dust", slug: "vomero-5-photon", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 170, priceMax: 170, currency: "EUR", releaseAt: fixedDate(2026, 6, 20), hype: 66, demand: 63, sellout: 68, priority: "MEDIUM", brand: "Nike", stock: 18000, marketPrice: 198 },
 
   // TCG (15)
-  { title: "Pokémon Mega Evolution Charizard Collection", slug: "pokemon-charizard-collection", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 49, priceMax: 49, currency: "EUR", releaseAt: fixedDate(2026, 4, 8), hype: 88, demand: 86, sellout: 90, priority: "EXTREME", tcgName: "Pokémon", setName: "Mega Evolution", productType: "collection", rarity: "Ultra Rare", sealed: true, msrp: 49, marketPrice: 95, stock: 8000 },
-  { title: "Pokémon 151 Ultra Premium Collection", slug: "pokemon-151-upc", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 120, priceMax: 120, currency: "EUR", releaseAt: fixedDate(2026, 5, 15), hype: 90, demand: 88, sellout: 92, priority: "EXTREME", tcgName: "Pokémon", setName: "151", productType: "UPC", sealed: true, msrp: 120, marketPrice: 210, stock: 5000 },
+  { title: "Pokémon Mega Evolution Charizard Collection", slug: "pokemon-charizard-collection", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 49, priceMax: 49, currency: "EUR", dropAt: wallToUtc(2026, 4, 8, 15, 0, 2), dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", dropEventKind: "release", hype: 88, demand: 86, sellout: 90, priority: "EXTREME", tcgName: "Pokémon", setName: "Mega Evolution", productType: "collection", rarity: "Ultra Rare", sealed: true, msrp: 49, marketPrice: 95, stock: 8000 },
+  { title: "Pokémon 151 Ultra Premium Collection", slug: "pokemon-151-upc", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 120, priceMax: 120, currency: "EUR", dropAt: wallToUtc(2026, 5, 15, 15, 0, 2), dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", dropEventKind: "preorder", hype: 90, demand: 88, sellout: 92, priority: "EXTREME", tcgName: "Pokémon", setName: "151", productType: "UPC", sealed: true, msrp: 120, marketPrice: 210, stock: 5000 },
   { title: "One Piece OP-12 Booster Box", slug: "one-piece-op12-box", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 110, priceMax: 110, currency: "EUR", releaseAt: fixedDate(2026, 4, 22), hype: 84, demand: 82, sellout: 86, priority: "HIGH", tcgName: "One Piece", setName: "OP-12", productType: "booster_box", sealed: true, msrp: 110, marketPrice: 165, stock: 6000 },
   { title: "Lorcana Chapter 8 Collector Set", slug: "lorcana-ch8-collector", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 55, priceMax: 55, currency: "EUR", releaseAt: fixedDate(2026, 5, 30), hype: 72, demand: 70, sellout: 74, priority: "MEDIUM", tcgName: "Lorcana", setName: "Chapter 8", productType: "collector_set", rarity: "Legendary", sealed: true, msrp: 55, marketPrice: 88, stock: 7000 },
   { title: "Magic Secret Lair — Doctor Who", slug: "magic-secret-lair-doctor-who", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 38, priceMax: 38, currency: "EUR", releaseAt: fixedDate(2026, 3, 25), hype: 68, demand: 66, sellout: 70, priority: "MEDIUM", tcgName: "Magic", setName: "Secret Lair", productType: "secret_lair", rarity: "Mythic", sealed: true, msrp: 38, marketPrice: 62, stock: 10000 },
@@ -188,7 +227,7 @@ const MOCK_SPECS: MockSpec[] = [
   { title: "Magic Modern Horizons 3 Box", slug: "magic-mh3-box", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 280, priceMax: 280, currency: "EUR", releaseAt: fixedDate(2026, 6, 28), hype: 78, demand: 76, sellout: 80, priority: "HIGH", tcgName: "Magic", setName: "Modern Horizons 3", productType: "booster_box", sealed: true, msrp: 280, marketPrice: 340, stock: 4000 },
   { title: "Pokémon Crown Zenith ETB", slug: "pokemon-crown-zenith-etb", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 48, priceMax: 48, currency: "EUR", releaseAt: fixedDate(2026, 3, 12), hype: 66, demand: 64, sellout: 68, priority: "MEDIUM", tcgName: "Pokémon", setName: "Crown Zenith", productType: "ETB", sealed: true, msrp: 48, marketPrice: 72, stock: 14000 },
   { title: "Yu-Gi-Oh Structure Deck Fire Kings", slug: "yugioh-fire-kings-deck", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 14, priceMax: 14, currency: "EUR", releaseAt: fixedDate(2026, 5, 2), hype: 44, demand: 42, sellout: 46, priority: "LOW", tcgName: "Yu-Gi-Oh", setName: "Fire Kings", productType: "structure_deck", sealed: true, msrp: 14, marketPrice: 18, stock: 30000 },
-  { title: "Pokémon Surging Sparks Booster Bundle", slug: "pokemon-surging-sparks-bundle", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 32, priceMax: 32, currency: "EUR", releaseAt: fixedDate(2026, 4, 26), hype: 62, demand: 60, sellout: 64, priority: "MEDIUM", tcgName: "Pokémon", setName: "Surging Sparks", productType: "bundle", sealed: true, msrp: 32, marketPrice: 44, stock: 16000 },
+  { title: "Pokémon Surging Sparks Booster Bundle", slug: "pokemon-surging-sparks-bundle", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 32, priceMax: 32, currency: "EUR", dropAt: wallToUtc(2026, 4, 26, 15, 0, 2), dropTimeConfirmed: false, dropTimezone: "Europe/Amsterdam", dropEventKind: "release", hype: 62, demand: 60, sellout: 64, priority: "MEDIUM", tcgName: "Pokémon", setName: "Surging Sparks", productType: "bundle", sealed: true, msrp: 32, marketPrice: 44, stock: 16000 },
 
   // Fashion / Gaming (10)
   { title: "Supreme Box Logo Hoodie FW26", slug: "supreme-box-logo-fw26", category: "Fashion Drops", categorySlug: "fashion-drops", type: "fashion", priceMin: 168, priceMax: 168, currency: "EUR", releaseAt: fixedDate(2026, 9, 4), hype: 86, demand: 84, sellout: 88, priority: "HIGH", brand: "Supreme", stock: 2000, marketPrice: 320 },

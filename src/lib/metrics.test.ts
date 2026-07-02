@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generateMockReleases } from "@/lib/data/mock-releases";
 import { enrichReleases } from "@/lib/data/enrich-releases";
 import { computeDashboardMetrics, sumVisibleProfitRows } from "@/lib/metrics";
-import { OPPORTUNITY_COLUMNS } from "@/lib/opportunities-table";
+import { OPPORTUNITY_COLUMNS, DEFAULT_COLUMN_IDS } from "@/lib/opportunities-table";
 
 describe("metrics", () => {
   it("profitPool equals sum of high-tier non-ticket rows", () => {
@@ -52,7 +52,9 @@ describe("opportunities-table columns", () => {
     expect(ids).toContain("roi");
   });
 
-  it("all columns are always visible", () => {
-    expect(OPPORTUNITY_COLUMNS.every((c) => c.alwaysVisible)).toBe(true);
+  it("default view shows 7 core columns", () => {
+    expect(DEFAULT_COLUMN_IDS).toHaveLength(7);
+    const defaults = OPPORTUNITY_COLUMNS.filter((c) => DEFAULT_COLUMN_IDS.includes(c.id as (typeof DEFAULT_COLUMN_IDS)[number]));
+    expect(defaults.every((c) => c.alwaysVisible)).toBe(true);
   });
 });

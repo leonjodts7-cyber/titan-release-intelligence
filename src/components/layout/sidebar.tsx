@@ -7,6 +7,8 @@ import { Zap, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems, navLabel } from "@/components/layout/nav-items";
 import { SidebarUser } from "@/components/auth/sidebar-user";
+import { isAuthEnabledClient } from "@/lib/auth/config";
+import { t } from "@/lib/i18n";
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
@@ -57,10 +59,13 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose
             );
           })}
         </nav>
-        <SidebarUser />
-        <div className="px-3 py-2 border-t border-titan-border text-[9px] text-zinc-600 font-mono">
-          v3.0 · Intelligence Platform
-        </div>
+        {isAuthEnabledClient() ? (
+          <SidebarUser />
+        ) : (
+          <div className="px-3 py-2.5 border-t border-titan-border text-[9px] text-zinc-600 font-mono">
+            {t("app.version")}
+          </div>
+        )}
       </aside>
     </>
   );

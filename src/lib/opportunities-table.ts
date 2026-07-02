@@ -1,7 +1,8 @@
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { formatEur, toEur } from "@/lib/money";
-import { formatDate } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { formatDrop } from "@/lib/time";
+import { getDropMeta } from "@/lib/drop";
 import type { OpportunityAction } from "@/types";
 
 export type OpportunitySortKey =
@@ -26,18 +27,30 @@ export interface OpportunityColumnDef {
   alwaysVisible: boolean;
 }
 
+export const DEFAULT_COLUMN_IDS = [
+  "release",
+  "category",
+  "start",
+  "retail",
+  "resale",
+  "profit",
+  "action",
+] as const;
+
+export const EXTRA_COLUMN_IDS = ["rank", "roi", "liquidity", "risk", "confidence"] as const;
+
 export const OPPORTUNITY_COLUMNS: OpportunityColumnDef[] = [
-  { id: "rank", label: "#", align: "left", numeric: false, alwaysVisible: true },
+  { id: "rank", label: "#", align: "left", numeric: false, alwaysVisible: false },
   { id: "release", label: t("terms.release"), align: "left", numeric: false, alwaysVisible: true },
   { id: "category", label: t("terms.category"), align: "left", numeric: false, alwaysVisible: true },
-  { id: "start", label: t("terms.start"), align: "left", numeric: false, sortKey: "date", alwaysVisible: true },
+  { id: "start", label: t("drops.colDrop"), align: "left", numeric: false, sortKey: "date", alwaysVisible: true },
   { id: "retail", label: t("terms.retail"), align: "right", numeric: true, sortKey: "retail", alwaysVisible: true },
   { id: "resale", label: t("terms.estResale"), align: "right", numeric: true, sortKey: "resale", alwaysVisible: true },
   { id: "profit", label: t("terms.netProfit"), align: "right", numeric: true, sortKey: "profit", alwaysVisible: true },
-  { id: "roi", label: t("terms.netRoi"), align: "right", numeric: true, sortKey: "roi", alwaysVisible: true },
-  { id: "liquidity", label: t("terms.liquidityShort"), align: "right", numeric: true, sortKey: "liquidity", alwaysVisible: true },
-  { id: "risk", label: t("terms.risk"), align: "right", numeric: true, sortKey: "risk", alwaysVisible: true },
-  { id: "confidence", label: t("terms.confidenceShort"), align: "right", numeric: true, sortKey: "confidence", alwaysVisible: true },
+  { id: "roi", label: t("terms.netRoi"), align: "right", numeric: true, sortKey: "roi", alwaysVisible: false },
+  { id: "liquidity", label: t("terms.liquidityShort"), align: "right", numeric: true, sortKey: "liquidity", alwaysVisible: false },
+  { id: "risk", label: t("terms.risk"), align: "right", numeric: true, sortKey: "risk", alwaysVisible: false },
+  { id: "confidence", label: t("terms.confidenceShort"), align: "right", numeric: true, sortKey: "confidence", alwaysVisible: false },
   { id: "action", label: t("terms.action"), align: "left", numeric: false, alwaysVisible: true },
 ];
 
@@ -72,8 +85,10 @@ export function getOpportunityCellValue(
       return { display: release.title, title: release.title };
     case "category":
       return { display: release.release_categories?.name ?? "—" };
-    case "start":
-      return { display: formatDate(release.release_starts_at) };
+    case "start": {
+      const meta = getDropMeta(release);
+      return { display: formatDrop(meta), muted: !meta.dropTimeConfirmed };
+    }
     case "retail":
       return {
         display: formatEur(retailEur),

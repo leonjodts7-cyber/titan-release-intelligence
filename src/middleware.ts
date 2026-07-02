@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { sanitizeReturnTo } from "@/lib/auth/redirect";
+import { isAuthEnabled } from "@/lib/auth/config";
 
 function isSupabaseConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -11,6 +12,18 @@ function isSupabaseConfigured(): boolean {
 const AUTH_PAGES = new Set(["/login", "/register", "/forgot-password"]);
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (!isAuthEnabled()) {
+    if (AUTH_PAGES.has(pathname)) {
+      const dash = request.nextUrl.clone();
+      dash.pathname = "/dashboard";
+      dash.search = "";
+      return NextResponse.redirect(dash);
+    }
+    return NextResponse.next();
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.next();
   }
@@ -19,8 +32,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/dashboard") && !user) {
     const loginUrl = request.nextUrl.clone();
@@ -41,10 +52,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/login",
-    "/register",
-    "/forgot-password",
-  ],
+  matcher: ["/dashboard/:path*", "/login", "/register", "/forgot-password"],
 };

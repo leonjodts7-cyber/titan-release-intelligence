@@ -8,11 +8,14 @@ import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { filterOpportunities } from "@/lib/data/enrich-releases";
 import {
   OPPORTUNITY_COLUMNS,
+  DEFAULT_COLUMN_IDS,
+  EXTRA_COLUMN_IDS,
   getOpportunityCellValue,
   sortOpportunityReleases,
   tierLabel,
   type OpportunitySortKey,
 } from "@/lib/opportunities-table";
+import { DropCountdown } from "@/components/drops/drop-countdown";
 import { Badge, tierBadgeLabel } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { t } from "@/lib/i18n";
@@ -33,6 +36,15 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
     const sorted = sortOpportunityReleases(filtered, sortKey);
     return sortDir === "asc" ? sorted.reverse() : sorted;
   }, [filtered, sortKey, sortDir]);
+
+  const [showExtraCols, setShowExtraCols] = useState(false);
+
+  const visibleColumns = useMemo(() => {
+    const ids = new Set<string>(
+      showExtraCols ? [...DEFAULT_COLUMN_IDS, ...EXTRA_COLUMN_IDS] : [...DEFAULT_COLUMN_IDS]
+    );
+    return OPPORTUNITY_COLUMNS.filter((c) => ids.has(c.id));
+  }, [showExtraCols]);
 
   const isTicketView = filters.category
     ? TICKET_SLUGS.has(filters.category)
@@ -85,6 +97,13 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
             {t("ticket.showProfitRoi")}
           </label>
         )}
+        <button
+          type="button"
+          onClick={() => setShowExtraCols((v) => !v)}
+          className="px-3 py-1.5 text-xs border border-titan-border rounded-lg text-titan-muted hover:text-zinc-200"
+        >
+          {showExtraCols ? t("drops.fewerColumns") : t("drops.moreColumns")}
+        </button>
       </div>
 
       {isTicketView && !showTicketProfit && (
@@ -95,7 +114,7 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-titan-surface text-titan-muted uppercase text-[10px]">
-              {OPPORTUNITY_COLUMNS.map((col) => (
+              {visibleColumns.map((col) => (
                 <th
                   key={col.id}
                   className={cn(
@@ -126,7 +145,7 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
               const hideProfit = r.release_type === "ticket" && !showTicketProfit;
               return (
                 <tr key={r.id} className="border-t border-titan-border hover:bg-white/[0.02]">
-                  {OPPORTUNITY_COLUMNS.map((col) => {
+                  {visibleColumns.map((col) => {
                     if (col.id === "release") {
                       return (
                         <td key={col.id} className="p-2 max-w-[220px]">
@@ -137,6 +156,17 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
                           >
                             {r.title}
                           </Link>
+                        </td>
+                      );
+                    }
+                    if (col.id === "start") {
+                      const cell = getOpportunityCellValue(col.id, r, i + 1, hideProfit);
+                      return (
+                        <td key={col.id} className="p-2">
+                          <div className="flex flex-col gap-1">
+                            <span className={cn(cell.muted && "text-titan-muted")}>{cell.display}</span>
+                            <DropCountdown release={r} />
+                          </div>
                         </td>
                       );
                     }

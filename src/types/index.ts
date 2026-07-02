@@ -45,6 +45,10 @@ export interface Release {
   release_starts_at: string | null;
   release_ends_at: string | null;
   timezone: string;
+  drop_at?: string | null;
+  drop_time_confirmed?: boolean;
+  drop_timezone?: string;
+  drop_event_type?: "preorder" | "release" | "presale" | "general_sale";
   price_min: number | null;
   price_max: number | null;
   currency: string;
