@@ -119,6 +119,42 @@ body {
   }
 }
 
+@keyframes auth-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+@keyframes auth-sparkline-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-8%); }
+}
+
+@keyframes auth-grid-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.55; }
+}
+
+.auth-shake {
+  animation: auth-shake 0.45s ease-in-out;
+}
+
+.auth-sparkline-path {
+  animation: auth-sparkline-drift 12s ease-in-out infinite alternate;
+}
+
+.auth-sparkline-path-delayed {
+  animation: auth-sparkline-drift 16s ease-in-out infinite alternate-reverse;
+}
+
+.auth-grid-glow {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--titan-accent) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--titan-accent) 6%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: auth-grid-pulse 8s ease-in-out infinite;
+}
+
 @layer utilities {
   .tabular-nums {
     font-variant-numeric: tabular-nums;

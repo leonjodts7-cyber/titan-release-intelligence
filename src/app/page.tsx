@@ -1,7 +1,22 @@
 import Link from "next/link";
 import { Zap, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/client-factory";
 
-export default function HomePage() {
+async function getDashboardHref(): Promise<string> {
+  if (!isSupabaseConfigured()) return "/dashboard";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user ? "/dashboard" : "/login";
+}
+
+export default async function HomePage() {
+  const dashboardHref = await getDashboardHref();
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-titan-border px-6 py-4 flex items-center justify-between">
@@ -10,7 +25,7 @@ export default function HomePage() {
           <span className="font-bold text-xl tracking-tight">TITAN</span>
         </div>
         <Link
-          href="/dashboard"
+          href={dashboardHref}
           className="px-4 py-2 bg-titan-accent hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
         >
           Open Dashboard
@@ -32,7 +47,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/dashboard"
+              href={dashboardHref}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-titan-accent hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors"
             >
               Launch Command Center

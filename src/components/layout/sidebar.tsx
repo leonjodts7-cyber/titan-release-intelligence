@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Zap, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems, navLabel } from "@/components/layout/nav-items";
+import { SidebarUser } from "@/components/auth/sidebar-user";
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
@@ -56,6 +57,7 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen?: boolean; onClose
             );
           })}
         </nav>
+        <SidebarUser />
         <div className="px-3 py-2 border-t border-titan-border text-[9px] text-zinc-600 font-mono">
           v3.0 · Intelligence Platform
         </div>
