@@ -102,7 +102,7 @@ export function MiniChart({
           })}
       </svg>
       {showTooltip && hoverIdx != null && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-titan-raised border border-titan-border px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-titan-surface-raised border border-titan-border px-1.5 py-0.5 rounded whitespace-nowrap z-10">
           €{data[hoverIdx].toLocaleString("nl-BE")} · min €{min.toLocaleString("nl-BE")} · max €{max.toLocaleString("nl-BE")}
         </div>
       )}

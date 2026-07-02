@@ -7,7 +7,7 @@ export function TableSkeleton({ rows = 8, cols = 6 }: { rows?: number; cols?: nu
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex gap-2 px-2 py-2.5 border-b border-titan-border/40">
           {Array.from({ length: cols }).map((__, j) => (
-            <div key={j} className={cn("h-3 rounded bg-titan-raised", j === 0 ? "w-6" : "flex-1")} />
+            <div key={j} className={cn("h-3 rounded bg-titan-surface-raised", j === 0 ? "w-6" : "flex-1")} />
           ))}
         </div>
       ))}

@@ -1,4 +1,21 @@
 import type { Config } from "tailwindcss";
+import { titanTokens } from "./src/lib/design-tokens";
+
+const titan = {
+  bg: titanTokens.bg,
+  surface: titanTokens.surface,
+  "surface-raised": titanTokens.surfaceRaised,
+  border: titanTokens.border,
+  accent: titanTokens.accent,
+  muted: titanTokens.muted,
+  profit: titanTokens.profit,
+  loss: titanTokens.loss,
+  warning: titanTokens.warning,
+  extreme: titanTokens.extreme,
+  high: titanTokens.high,
+  medium: titanTokens.medium,
+  low: titanTokens.low,
+};
 
 const config: Config = {
   content: [
@@ -9,21 +26,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        titan: {
-          bg: "#0a0a0f",
-          surface: "#12121a",
-          raised: "#14141f",
-          border: "#1e1e2e",
-          accent: "#6366f1",
-          muted: "#71717a",
-          extreme: "#ef4444",
-          high: "#f97316",
-          medium: "#eab308",
-          low: "#22c55e",
-        },
-        profit: "var(--profit)",
-        loss: "var(--loss)",
-        warning: "var(--warning)",
+        titan,
+        // Semantic aliases (same values as titan.*)
+        profit: titan.profit,
+        loss: titan.loss,
+        warning: titan.warning,
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],

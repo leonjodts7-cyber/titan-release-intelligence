@@ -167,7 +167,7 @@ export default function PortfolioPage() {
                 ))}
               </datalist>
               {suggestions.length > 0 && name && !releaseId && (
-                <div className="absolute z-10 top-full mt-1 w-full bg-titan-raised border border-titan-border rounded shadow-lg max-h-40 overflow-y-auto">
+                <div className="absolute z-10 top-full mt-1 w-full bg-titan-surface-raised border border-titan-border rounded shadow-lg max-h-40 overflow-y-auto">
                   {suggestions.map((r) => (
                     <button
                       key={r.id}

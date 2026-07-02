@@ -3,31 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --background: #07070b;
-  --foreground: #e4e4e7;
-  --surface: #0e0e14;
-  --surface-raised: #14141f;
-  --border: #1c1c26;
-  --accent: #6366f1;
-  --muted: #71717a;
-  --profit: #34d399;
-  --loss: #f87171;
-  --warning: #fbbf24;
+  --titan-bg: #0a0a0f;
+  --titan-surface: #12121a;
+  --titan-surface-raised: #14141f;
+  --titan-border: #1e1e2e;
+  --titan-accent: #6366f1;
+  --titan-muted: #71717a;
+  --titan-profit: #34d399;
+  --titan-loss: #f87171;
+  --titan-warning: #fbbf24;
+  --titan-foreground: #e4e4e7;
+  /* Legacy aliases used by SVG / inline styles */
+  --profit: var(--titan-profit);
+  --loss: var(--titan-loss);
+  --warning: var(--titan-warning);
+  --background: var(--titan-bg);
+  --foreground: var(--titan-foreground);
+  --surface: var(--titan-surface);
+  --surface-raised: var(--titan-surface-raised);
+  --border: var(--titan-border);
+  --accent: var(--titan-accent);
+  --muted: var(--titan-muted);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--titan-foreground);
+  background: var(--titan-bg);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
 
 @layer components {
   .command-center-bar {
-    @apply rounded-lg border border-titan-border overflow-hidden bg-titan-surface;
+    @apply rounded-lg overflow-hidden;
+    border: 1px solid var(--titan-border);
+    background-color: var(--titan-surface);
   }
 
   .intel-stat {
-    @apply px-2 py-1.5 rounded border border-titan-border/60 bg-titan-bg/50;
+    @apply px-2 py-1.5 rounded;
+    border: 1px solid color-mix(in srgb, var(--titan-border) 60%, transparent);
+    background-color: color-mix(in srgb, var(--titan-bg) 50%, transparent);
   }
 
   .intel-stat-compact {
@@ -35,7 +50,8 @@ body {
   }
 
   .intel-stat-label {
-    @apply text-[9px] uppercase tracking-wider text-titan-muted font-medium;
+    @apply text-[9px] uppercase tracking-wider font-medium;
+    color: var(--titan-muted);
   }
 
   .intel-stat-value {
@@ -51,11 +67,15 @@ body {
   }
 
   .intel-table th {
-    @apply text-left text-[9px] uppercase tracking-wider text-titan-muted font-medium px-2 py-1.5 border-b border-titan-border bg-titan-surface/80 sticky top-0;
+    @apply text-left text-[9px] uppercase tracking-wider font-medium px-2 py-1.5 sticky top-0;
+    color: var(--titan-muted);
+    border-bottom: 1px solid var(--titan-border);
+    background-color: color-mix(in srgb, var(--titan-surface) 80%, transparent);
   }
 
   .intel-table td {
-    @apply px-2 py-1.5 border-b border-titan-border/40 text-zinc-300;
+    @apply px-2 py-1.5 text-zinc-300;
+    border-bottom: 1px solid color-mix(in srgb, var(--titan-border) 40%, transparent);
   }
 
   .intel-table tr:hover td {
@@ -63,11 +83,14 @@ body {
   }
 
   .intel-card {
-    @apply rounded-lg border border-titan-border bg-titan-surface p-3;
+    @apply rounded-lg p-3;
+    border: 1px solid var(--titan-border);
+    background-color: var(--titan-surface);
   }
 
   .intel-section-title {
-    @apply text-section-label font-semibold uppercase tracking-wider text-titan-muted;
+    @apply text-[10px] font-semibold uppercase tracking-wider;
+    color: var(--titan-muted);
   }
 
   .text-page-title {
@@ -80,14 +103,19 @@ body {
 
   .text-caption {
     @apply text-[10px];
+    color: var(--titan-muted);
   }
 
   .text-profit {
-    color: var(--profit);
+    color: var(--titan-profit);
   }
 
   .text-loss {
-    color: var(--loss);
+    color: var(--titan-loss);
+  }
+
+  .text-warning {
+    color: var(--titan-warning);
   }
 }
 
