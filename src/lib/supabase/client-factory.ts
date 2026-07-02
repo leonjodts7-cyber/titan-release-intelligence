@@ -1,14 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  return Boolean(url && anonKey && url.startsWith("https://") && anonKey.length > 20);
 }
 
 export function isDemoMode(): boolean {
   return !isSupabaseConfigured();
+}
+
+export function hasServiceRoleKey(): boolean {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  return Boolean(key && key.length > 20);
 }
 
 export function createServiceClient(): SupabaseClient {
@@ -40,7 +44,7 @@ export function getSupabaseClient(): SupabaseClient | null {
   if (!isSupabaseConfigured()) return null;
 
   try {
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (hasServiceRoleKey()) {
       return createServiceClient();
     }
     return createAnonServiceClient();

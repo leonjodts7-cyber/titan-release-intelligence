@@ -1,4 +1,4 @@
-import { getSupabaseClient, isSupabaseConfigured, isDemoMode } from "@/lib/supabase/client-factory";
+import { getSupabaseClient, isSupabaseConfigured, isDemoMode, hasServiceRoleKey } from "@/lib/supabase/client-factory";
 import type { SetupHealth } from "@/types";
 
 export type { SetupHealth } from "@/types";
@@ -6,9 +6,7 @@ export type { SetupHealth } from "@/types";
 export async function checkSetupHealth(): Promise<SetupHealth> {
   const errors: string[] = [];
   const demoMode = isDemoMode();
-  const serviceRoleAvailable = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  const serviceRoleAvailable = hasServiceRoleKey();
 
   let supabaseConnected = false;
   let tablesFound = false;
@@ -30,6 +28,8 @@ export async function checkSetupHealth(): Promise<SetupHealth> {
     }
   } else if (!isSupabaseConfigured()) {
     errors.push("Demo mode: Supabase not configured — using mock data");
+  } else if (!serviceRoleAvailable) {
+    errors.push("SUPABASE_SERVICE_ROLE_KEY missing — server writes may fail; add service role key to .env.local");
   }
 
   return {
