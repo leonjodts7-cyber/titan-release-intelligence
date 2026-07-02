@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 interface SearchResult {
   id: string;
@@ -61,7 +62,7 @@ export function GlobalSearch() {
         className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-xs text-zinc-500 border border-titan-border rounded-md hover:border-zinc-600 bg-titan-bg/80"
       >
         <Search className="w-3.5 h-3.5" />
-        Search intelligence...
+        {t("app.searchPlaceholder")}
         <kbd className="ml-4 text-[10px] px-1 py-0.5 rounded bg-titan-surface border border-titan-border">⌘K</kbd>
       </button>
 

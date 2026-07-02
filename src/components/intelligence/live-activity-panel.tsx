@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { nl } from "date-fns/locale";
 import type { ActivityFeedItem } from "@/lib/data/activity-feed";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 const TYPE_COLORS: Record<string, string> = {
   scan: "text-zinc-400",
@@ -67,13 +68,13 @@ export function LiveActivityPanel({ initialItems }: { initialItems?: ActivityFee
   return (
     <aside className="activity-panel flex flex-col h-full border-l border-titan-border bg-titan-surface/50">
       <div className="px-3 py-2 border-b border-titan-border flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Live Feed</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{t("feed.title")}</span>
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-0">
-        {loading && <div className="text-xs text-zinc-600 p-2">Loading feed...</div>}
+        {loading && <div className="text-xs text-zinc-600 p-2">{t("feed.loading")}</div>}
         {!loading && items.length === 0 && (
-          <div className="text-xs text-zinc-600 p-2">No activity yet</div>
+          <div className="text-xs text-zinc-600 p-2">{t("feed.empty")}</div>
         )}
         {items.map((item) => (
           <div key={item.id} className="activity-row py-2 border-b border-titan-border/40 last:border-0">

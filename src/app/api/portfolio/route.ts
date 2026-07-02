@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  addPosition, getPositions, getPortfolioStats, recordSale, updatePosition,
+  addPosition,
+  deletePosition,
+  getPositions,
+  getPortfolioStats,
+  recordSale,
+  updatePosition,
 } from "@/lib/data/portfolio";
 import { netPayout } from "@/lib/payout";
 
@@ -13,16 +18,28 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
 
   if (body.action === "sell") {
-    const payout = netPayout(body.sale_price_eur, body.platform ?? "stockx");
-    const snap = recordSale(body.id, body.platform ?? "stockx", payout);
+    const gross = Number(body.sale_price_eur);
+    const platform = body.platform ?? "stockx";
+    const snap = recordSale(body.id, platform, gross);
     if (!snap) return NextResponse.json({ error: "Position not found" }, { status: 404 });
-    return NextResponse.json({ snapshot: snap, position: getPositions().find((p) => p.id === body.id) });
+    const payout = netPayout(gross, platform);
+    return NextResponse.json({
+      snapshot: snap,
+      net_payout_eur: payout,
+      position: getPositions().find((p) => p.id === body.id),
+    });
   }
 
   if (body.action === "update") {
     const pos = updatePosition(body.id, body.patch);
     if (!pos) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ position: pos });
+  }
+
+  if (body.action === "delete") {
+    const ok = deletePosition(body.id);
+    if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ ok: true });
   }
 
   const pos = addPosition({

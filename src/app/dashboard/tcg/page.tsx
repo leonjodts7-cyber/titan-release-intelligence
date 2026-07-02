@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getReleases } from "@/lib/data/releases";
-import { enrichReleases, getTcgOpportunities, sortByOpportunity } from "@/lib/data/enrich-releases";
+import { enrichReleases, sortByOpportunity } from "@/lib/data/enrich-releases";
 import { IntelligenceLayout } from "@/components/layout/intelligence-layout";
-import { IntelStat } from "@/components/intelligence/intel-stat";
-import { MiniChart } from "@/components/intelligence/mini-chart";
 import { OpportunityBadge } from "@/components/releases/opportunity-badge";
+import { PageTitle } from "@/components/ui/card";
+import { formatEur, toEur } from "@/lib/money";
+import { t } from "@/lib/i18n";
 
 const TCG_NAMES = ["Pokémon", "One Piece", "Magic", "Yu-Gi-Oh", "Lorcana", "Sports Cards"];
 
@@ -20,10 +21,7 @@ export default async function TcgPage() {
   return (
     <IntelligenceLayout showFeed={false}>
       <div className="p-3 md:p-4 space-y-4 max-w-[1600px]">
-        <div>
-          <h1 className="text-lg font-bold">TCG Intelligence</h1>
-          <p className="text-[10px] text-zinc-500">{tcg.length} products · MSRP vs market · grading · collector demand</p>
-        </div>
+        <PageTitle title={t("tcg.title")} subtitle={t("tcg.subtitle", { count: tcg.length })} />
 
         {TCG_NAMES.map((name) => {
           const items = byTcg[name];
@@ -35,24 +33,45 @@ export default async function TcgPage() {
                 <table className="intel-table">
                   <thead>
                     <tr>
-                      <th>Product</th><th>MSRP</th><th>Market</th><th>Trend</th><th>Grade Pot.</th><th>Collector</th><th>Scarcity</th><th>Growth</th><th>Liq.</th><th>Action</th>
+                      <th>{t("tcg.product")}</th>
+                      <th className="text-right">MSRP</th>
+                      <th className="text-right">{t("terms.market")}</th>
+                      <th>{t("tcg.trend")}</th>
+                      <th className="text-right">{t("tcg.gradePot")}</th>
+                      <th className="text-right">{t("tcg.collector")}</th>
+                      <th className="text-right">{t("tcg.scarcity")}</th>
+                      <th className="text-right">{t("tcg.growth")}</th>
+                      <th className="text-right">{t("terms.liquidityShort")}</th>
+                      <th>{t("terms.action")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {items.slice(0, 8).map((r) => (
-                      <tr key={r.id}>
-                        <td><Link href={`/dashboard/releases/${r.id}`} className="hover:text-titan-accent">{r.title}</Link></td>
-                        <td>${r.msrp ?? r.price_min}</td>
-                        <td className="text-emerald-400">${r.market_price ?? r.current_market_price ?? "—"}</td>
-                        <td>{r.tcg_trend ?? "—"}</td>
-                        <td>{r.grading_potential ?? "—"}</td>
-                        <td>{r.collector_score ?? "—"}</td>
-                        <td>{r.scarcity_score}</td>
-                        <td>{r.historical_growth_pct ?? "—"}%</td>
-                        <td>{Math.round(r.market_liquidity_score)}%</td>
-                        <td><OpportunityBadge action={r.opportunity_action} compact /></td>
-                      </tr>
-                    ))}
+                    {items.slice(0, 8).map((r) => {
+                      const msrpEur = r.msrp != null ? toEur(r.msrp, r.currency) : r.price_min != null ? toEur(r.price_min, r.currency) : null;
+                      const marketEur = r.market_price != null
+                        ? toEur(r.market_price, r.currency)
+                        : r.current_market_price != null
+                          ? toEur(r.current_market_price, r.currency)
+                          : null;
+                      return (
+                        <tr key={r.id}>
+                          <td>
+                            <Link href={`/dashboard/releases/${r.id}`} className="hover:text-titan-accent line-clamp-2" title={r.title}>
+                              {r.title}
+                            </Link>
+                          </td>
+                          <td className="text-right font-mono tabular-nums" title={r.currency}>{formatEur(msrpEur)}</td>
+                          <td className="text-right font-mono tabular-nums text-profit">{formatEur(marketEur)}</td>
+                          <td>{r.tcg_trend ?? "—"}</td>
+                          <td className="text-right tabular-nums">{r.grading_potential ?? "—"}</td>
+                          <td className="text-right tabular-nums">{r.collector_score ?? "—"}</td>
+                          <td className="text-right tabular-nums">{r.scarcity_score}</td>
+                          <td className="text-right tabular-nums">{r.historical_growth_pct ?? "—"}%</td>
+                          <td className="text-right tabular-nums">{Math.round(r.market_liquidity_score)}%</td>
+                          <td><OpportunityBadge action={r.opportunity_action} compact showScore={false} /></td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

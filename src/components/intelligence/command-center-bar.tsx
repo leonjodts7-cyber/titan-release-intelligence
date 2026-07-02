@@ -7,7 +7,10 @@ import {
   TrendingUp, Zap, Layers, Calendar, Package,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { nl } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
+import { formatEur } from "@/lib/money";
 
 export interface CommandCenterMetrics {
   sourcesOnline: number;
@@ -64,7 +67,9 @@ export function CommandCenterBar({ metrics }: { metrics?: Partial<CommandCenterM
       const secs = new Date().getSeconds();
       setNextScan(`${cron - (mins % cron)}m ${60 - secs}s`);
       setLastScanLabel(
-        m.lastScanAt ? formatDistanceToNow(new Date(m.lastScanAt), { addSuffix: true }) : "—"
+        m.lastScanAt
+          ? formatDistanceToNow(new Date(m.lastScanAt), { addSuffix: true, locale: nl })
+          : "—"
       );
     };
     tick();
@@ -73,29 +78,29 @@ export function CommandCenterBar({ metrics }: { metrics?: Partial<CommandCenterM
   }, [m.lastScanAt]);
 
   const tiles = [
-    { icon: Radio, label: "Sources", value: `${m.sourcesOnline}/${m.sourcesTotal}`, href: "/dashboard/sources" },
-    { icon: Activity, label: "Pipeline", value: m.pipelineActive ? "Live" : "Idle", ok: m.pipelineActive },
-    { icon: Brain, label: "AI", value: m.aiActive ? "Active" : "Rules", ok: m.aiActive },
-    { icon: Database, label: "Database", value: m.dbConnected ? "Connected" : "Demo", ok: m.dbConnected },
-    { icon: Bell, label: "Unread", value: String(m.unreadNotifications), href: "/dashboard/notifications", alert: m.unreadNotifications > 0 },
-    { icon: ScanLine, label: "Scans", value: String(m.scansToday), href: "/dashboard/scans" },
-    { icon: Zap, label: "Changes", value: String(m.changesToday) },
-    { icon: AlertTriangle, label: "Critical", value: String(m.criticalCount), href: "/dashboard/opportunities", alert: m.criticalCount > 0 },
-    { icon: TrendingUp, label: "Opportunities", value: String(m.opportunityCount), href: "/dashboard/opportunities" },
-    { icon: TrendingUp, label: "Profit Pool", value: `€${Math.round(m.profitPool).toLocaleString()}`, href: "/dashboard/opportunities" },
-    { icon: TrendingUp, label: "Top ROI", value: `${m.topRoi}%`, href: "/dashboard/opportunities" },
-    { icon: Layers, label: "Top Category", value: truncate(m.topCategory), href: "/dashboard/analytics" },
-    { icon: Calendar, label: "Top Event", value: truncate(m.topEvent), href: "/dashboard/releases" },
-    { icon: Package, label: "Top Product", value: truncate(m.topProduct), href: "/dashboard/market" },
+    { icon: Radio, label: t("command.sources"), value: `${m.sourcesOnline}/${m.sourcesTotal}`, href: "/dashboard/sources" },
+    { icon: Activity, label: t("command.pipeline"), value: m.pipelineActive ? t("command.pipelineLive") : t("command.pipelineIdle"), ok: m.pipelineActive },
+    { icon: Brain, label: t("command.ai"), value: m.aiActive ? t("command.aiActive") : t("command.aiRules"), ok: m.aiActive },
+    { icon: Database, label: t("command.database"), value: m.dbConnected ? t("command.dbConnected") : t("command.dbDemo"), ok: m.dbConnected },
+    { icon: Bell, label: t("command.unread"), value: String(m.unreadNotifications), href: "/dashboard/notifications", alert: m.unreadNotifications > 0 },
+    { icon: ScanLine, label: t("command.scans"), value: String(m.scansToday), href: "/dashboard/scans" },
+    { icon: Zap, label: t("command.changes"), value: String(m.changesToday) },
+    { icon: AlertTriangle, label: t("command.critical"), value: String(m.criticalCount), href: "/dashboard/opportunities", alert: m.criticalCount > 0 },
+    { icon: TrendingUp, label: t("command.opportunities"), value: String(m.opportunityCount), href: "/dashboard/opportunities" },
+    { icon: TrendingUp, label: t("command.profitPool"), value: formatEur(m.profitPool), href: "/dashboard/opportunities" },
+    { icon: TrendingUp, label: t("command.topRoi"), value: `${m.topRoi}%`, href: "/dashboard/opportunities" },
+    { icon: Layers, label: t("command.topCategory"), value: truncate(m.topCategory), href: "/dashboard/analytics" },
+    { icon: Calendar, label: t("command.topEvent"), value: truncate(m.topEvent), href: "/dashboard/releases" },
+    { icon: Package, label: t("command.topProduct"), value: truncate(m.topProduct), href: "/dashboard/market" },
   ];
 
   return (
     <div className="command-center-bar">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-titan-border/60 text-[10px] text-zinc-500 font-mono">
-        <span>TITAN INTELLIGENCE · LIVE</span>
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-titan-border/60 text-[10px] text-titan-muted font-mono">
+        <span>{t("app.live")}</span>
         <span>
-          Last scan {lastScanLabel}
-          {" · "}Next {nextScan}
+          {t("command.lastScan")} {lastScanLabel}
+          {" · "}{t("command.nextScan")} {nextScan}
         </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 xl:grid-cols-14 gap-px bg-titan-border/40">
@@ -103,13 +108,13 @@ export function CommandCenterBar({ metrics }: { metrics?: Partial<CommandCenterM
           const inner = (
             <div className={cn(
               "command-tile bg-titan-surface px-2 py-2 hover:bg-white/[0.03] transition-colors h-full",
-              alert && "bg-red-500/[0.04]"
+              alert && "bg-loss/5"
             )}>
-              <div className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-zinc-500 mb-0.5">
-                <Icon className={cn("w-2.5 h-2.5", alert && "text-red-400", ok === false && "text-yellow-400")} />
+              <div className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-titan-muted mb-0.5">
+                <Icon className={cn("w-2.5 h-2.5", alert && "text-loss", ok === false && "text-warning")} />
                 {label}
               </div>
-              <div className={cn("text-[11px] font-mono font-semibold truncate", alert ? "text-red-400" : "text-zinc-100")}>
+              <div className={cn("text-[11px] font-mono font-semibold truncate tabular-nums", alert ? "text-loss" : "text-zinc-100")}>
                 {value}
               </div>
             </div>

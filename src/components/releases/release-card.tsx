@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ExternalLink, MapPin } from "lucide-react";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { cn, formatCountdown, formatDate, priorityColor } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 import { PriceIntel } from "./price-intel";
 import { OpportunityBadge } from "./opportunity-badge";
 
@@ -66,7 +67,7 @@ export function ReleaseCard({ release, compact, showUpdate, hideProfit }: Releas
 
         {isTicket && (
           <p className="text-[9px] text-zinc-600 mb-2 leading-snug">
-            Monitoring & marktdata — doorverkoop boven originele prijs is in België niet toegelaten
+            {t("ticket.disclaimer")}
           </p>
         )}
 
@@ -85,7 +86,7 @@ export function ReleaseCard({ release, compact, showUpdate, hideProfit }: Releas
           className="mt-2 flex items-center gap-1 text-[10px] text-titan-accent hover:underline w-fit"
         >
           <ExternalLink className="w-2.5 h-2.5" />
-          Official link
+          {t("terms.officialLink")}
         </a>
       )}
     </div>

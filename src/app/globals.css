@@ -6,15 +6,19 @@
   --background: #07070b;
   --foreground: #e4e4e7;
   --surface: #0e0e14;
+  --surface-raised: #14141f;
   --border: #1c1c26;
   --accent: #6366f1;
+  --muted: #71717a;
+  --profit: #34d399;
+  --loss: #f87171;
+  --warning: #fbbf24;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
-  font-feature-settings: "tnum" 1;
 }
 
 @layer components {
@@ -31,11 +35,11 @@ body {
   }
 
   .intel-stat-label {
-    @apply text-[9px] uppercase tracking-wider text-zinc-500 font-medium;
+    @apply text-[9px] uppercase tracking-wider text-titan-muted font-medium;
   }
 
   .intel-stat-value {
-    @apply text-sm font-mono font-semibold text-zinc-100 leading-tight;
+    @apply text-sm font-mono font-semibold text-zinc-100 leading-tight tabular-nums;
   }
 
   .intel-stat-sub {
@@ -43,11 +47,11 @@ body {
   }
 
   .intel-table {
-    @apply w-full text-[11px] font-mono;
+    @apply w-full text-[11px];
   }
 
   .intel-table th {
-    @apply text-left text-[9px] uppercase tracking-wider text-zinc-500 font-medium px-2 py-1.5 border-b border-titan-border bg-titan-surface/80 sticky top-0;
+    @apply text-left text-[9px] uppercase tracking-wider text-titan-muted font-medium px-2 py-1.5 border-b border-titan-border bg-titan-surface/80 sticky top-0;
   }
 
   .intel-table td {
@@ -63,11 +67,35 @@ body {
   }
 
   .intel-section-title {
-    @apply text-[10px] font-semibold uppercase tracking-wider text-zinc-500;
+    @apply text-section-label font-semibold uppercase tracking-wider text-titan-muted;
+  }
+
+  .text-page-title {
+    @apply text-lg;
+  }
+
+  .text-section-label {
+    @apply text-[10px];
+  }
+
+  .text-caption {
+    @apply text-[10px];
+  }
+
+  .text-profit {
+    color: var(--profit);
+  }
+
+  .text-loss {
+    color: var(--loss);
   }
 }
 
 @layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
   .scrollbar-thin::-webkit-scrollbar {
     width: 3px;
     height: 3px;

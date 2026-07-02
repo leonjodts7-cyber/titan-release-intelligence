@@ -1,4 +1,3 @@
-import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { getScanJobs } from "@/lib/data/sources";
 import { getReleases } from "@/lib/data/releases";
 import { enrichReleases } from "@/lib/data/enrich-releases";
@@ -14,6 +13,15 @@ export interface ActivityFeedItem {
   detail?: string;
   release_id?: string;
   importance: number;
+}
+
+function resolveFeedSource(release: { brands?: { name: string } | null; tcg_name?: string | null; release_type?: string }): string {
+  const brand = release.brands?.name;
+  if (brand === "Nike" || brand === "Jordan") return "Nike SNKRS";
+  if (brand === "Adidas") return "Adidas Confirmed";
+  if (release.tcg_name) return "TCGplayer";
+  if (release.release_type === "ticket") return "Ticketmaster";
+  return "StockX";
 }
 
 export async function getActivityFeed(limit = 40): Promise<ActivityFeedItem[]> {
@@ -41,9 +49,9 @@ export async function getActivityFeed(limit = 40): Promise<ActivityFeedItem[]> {
     items.push({
       id: `upd-${r.id}`,
       timestamp: r.last_changed_at ?? new Date(now - (i + 2) * 90000).toISOString(),
-      source: r.official_sources?.[0] ?? "RSS",
+      source: resolveFeedSource(r),
       type: "update",
-      headline: `${r.title.split("—")[0].trim()} updated`,
+      headline: `${r.title.split("—")[0].trim()} bijgewerkt`,
       detail: `Opportunity ${r.opportunity_score} · ${r.opportunity_action}`,
       release_id: r.id,
       importance: r.opportunity_score,
@@ -91,9 +99,9 @@ export async function getActivityFeed(limit = 40): Promise<ActivityFeedItem[]> {
     items.push({
       id: "drop-nike",
       timestamp: new Date(now - 240000).toISOString(),
-      source: "Nike",
+      source: "Nike SNKRS",
       type: "drop",
-      headline: "Drop detected",
+      headline: "Drop gedetecteerd",
       detail: nike.title,
       release_id: nike.id,
       importance: 88,

@@ -1,3 +1,5 @@
+import { netPayout } from "@/lib/payout";
+
 export type PositionStatus = "holding" | "listed" | "sold";
 
 export interface Position {
@@ -119,26 +121,61 @@ export function recordSale(id: string, platform: string, salePriceEur: number): 
   return snap;
 }
 
+export function deletePosition(id: string): boolean {
+  const idx = positionsCache.findIndex((p) => p.id === id);
+  if (idx < 0) return false;
+  positionsCache.splice(idx, 1);
+  return true;
+}
+
+function median(values: number[]): number {
+  if (!values.length) return 0;
+  const s = [...values].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m];
+}
+
 export function getPortfolioStats(positions: Position[] = getPositions()) {
   const sold = positions.filter((p) => p.status === "sold" && p.sale_price_eur != null);
   const invested = positions.reduce((s, p) => s + p.buy_price_eur * p.qty, 0);
-  const netProfit = sold.reduce((s, p) => s + ((p.sale_price_eur ?? 0) - p.buy_price_eur) * p.qty, 0);
-  const avgRoi = sold.length
-    ? sold.reduce((s, p) => s + (((p.sale_price_eur ?? 0) - p.buy_price_eur) / p.buy_price_eur) * 100, 0) / sold.length
-    : 0;
-  const wins = sold.filter((p) => (p.sale_price_eur ?? 0) > p.buy_price_eur).length;
+  const netProfit = sold.reduce((s, p) => {
+    const payout = netPayout(p.sale_price_eur ?? 0, p.sale_platform ?? "stockx");
+    return s + (payout - p.buy_price_eur * p.qty);
+  }, 0);
+  const roiPcts = sold.map((p) => {
+    const payout = netPayout(p.sale_price_eur ?? 0, p.sale_platform ?? "stockx");
+    return p.buy_price_eur > 0 ? ((payout - p.buy_price_eur) / p.buy_price_eur) * 100 : 0;
+  });
+  const medianRoi = Math.round(median(roiPcts) * 10) / 10;
+  const wins = sold.filter((p) => {
+    const payout = netPayout(p.sale_price_eur ?? 0, p.sale_platform ?? "stockx");
+    return payout > p.buy_price_eur;
+  }).length;
   const best = sold.reduce<Position | null>((b, p) => {
-    const profit = (p.sale_price_eur ?? 0) - p.buy_price_eur;
+    const payout = netPayout(p.sale_price_eur ?? 0, p.sale_platform ?? "stockx");
+    const profit = payout - p.buy_price_eur * p.qty;
     if (!b) return p;
-    return profit > ((b.sale_price_eur ?? 0) - b.buy_price_eur) ? p : b;
+    const bPayout = netPayout(b.sale_price_eur ?? 0, b.sale_platform ?? "stockx");
+    return profit > (bPayout - b.buy_price_eur * b.qty) ? p : b;
   }, null);
   const worst = sold.reduce<Position | null>((w, p) => {
-    const profit = (p.sale_price_eur ?? 0) - p.buy_price_eur;
+    const payout = netPayout(p.sale_price_eur ?? 0, p.sale_platform ?? "stockx");
+    const profit = payout - p.buy_price_eur * p.qty;
     if (!w) return p;
-    return profit < ((w.sale_price_eur ?? 0) - w.buy_price_eur) ? p : w;
+    const wPayout = netPayout(w.sale_price_eur ?? 0, w.sale_platform ?? "stockx");
+    return profit < (wPayout - w.buy_price_eur * w.qty) ? p : w;
   }, null);
 
-  return { invested, netProfit, avgRoi: Math.round(avgRoi * 10) / 10, winRate: sold.length ? Math.round((wins / sold.length) * 100) : 0, best, worst, soldCount: sold.length };
+  return {
+    invested,
+    netProfit: Math.round(netProfit * 100) / 100,
+    avgRoi: medianRoi,
+    medianRoi,
+    winRate: sold.length ? Math.round((wins / sold.length) * 100) : 0,
+    best,
+    worst,
+    soldCount: sold.length,
+  };
 }
 
 export function getModelAccuracy(snapshots: PredictionSnapshot[] = getPredictionSnapshots()) {

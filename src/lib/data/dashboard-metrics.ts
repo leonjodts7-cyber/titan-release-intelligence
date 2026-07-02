@@ -2,16 +2,17 @@ import type { Notification, SourceAdapter, ScanJob } from "@/types";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import type { CommandCenterMetrics } from "@/components/intelligence/command-center-bar";
 import { isSupabaseConfigured } from "@/lib/supabase/client-factory";
+import { computeDashboardMetrics } from "@/lib/metrics";
 
 export function buildCommandCenterMetrics(input: {
   sources: SourceAdapter[];
   scans: ScanJob[];
   notifications: Notification[];
   releases: EnrichedRelease[];
-  profitPool: number;
-  topRoi: number;
 }): CommandCenterMetrics {
-  const { sources, scans, notifications, releases, profitPool, topRoi } = input;
+  const { sources, scans, notifications, releases } = input;
+  const metrics = computeDashboardMetrics(releases);
+  const { profitPool, topRoi, criticalCount, opportunityCount } = metrics;
   const dayAgo = Date.now() - 86400000;
 
   const categoryCounts: Record<string, number> = {};
@@ -37,10 +38,8 @@ export function buildCommandCenterMetrics(input: {
     unreadNotifications: notifications.filter((n) => n.status !== "read").length,
     scansToday: scans.filter((s) => s.started_at && new Date(s.started_at).getTime() > dayAgo).length,
     changesToday: releases.filter((r) => r.last_changed_at && new Date(r.last_changed_at).getTime() > dayAgo).length,
-    criticalCount: releases.filter((r) =>
-      r.opportunity_action === "TOP OPPORTUNITY" || r.opportunity_action === "MUST WATCH"
-    ).length,
-    opportunityCount: releases.filter((r) => r.opportunity_action !== "IGNORE").length,
+    criticalCount,
+    opportunityCount,
     profitPool,
     topRoi,
     topCategory,

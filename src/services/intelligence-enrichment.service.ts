@@ -1,5 +1,9 @@
 import type { Release } from "@/types";
 import type { ResaleIntelligence } from "./resale-intelligence.service";
+import {
+  generatePriceHistory,
+  inferPriceHistoryCategory,
+} from "@/lib/price-history";
 
 /** Deterministic pseudo-random from string seed (0–100) */
 function seedHash(s: string, salt = 0): number {
@@ -97,9 +101,15 @@ export class IntelligenceEnrichmentService {
       histChange > 8 ? "UP" : histChange < -2 ? "DOWN" : "STABLE";
 
     const base30 = marketMid ?? retailMid ?? 100;
-    const price30 = this.generateHistory(base30, id, 30, 0.08);
-    const price90 = this.generateHistory(base30, id, 90, 0.12);
-    const price180 = this.generateHistory(base30, id, 180, 0.15);
+    const category = inferPriceHistoryCategory(
+      release.release_type ?? "other",
+      release.release_categories?.slug,
+      release.tcg_name
+    );
+    const seed = id;
+    const price30 = generatePriceHistory(base30, seed, 30, category);
+    const price90 = generatePriceHistory(base30, seed, 90, category);
+    const price180 = generatePriceHistory(base30, seed, 180, category);
 
     const aiConfidence = Math.min(92, Math.max(8, Math.round(resale.resale_confidence_score)));
 
@@ -143,18 +153,6 @@ export class IntelligenceEnrichmentService {
       price_history_90d: price90,
       price_history_180d: price180,
     };
-  }
-
-  private generateHistory(base: number, id: string, points: number, variance: number): number[] {
-    const out: number[] = [];
-    let v = base * (1 - variance);
-    for (let i = 0; i < points; i++) {
-      const drift = seedFloat(id, -variance * 0.3, variance * 0.5, 100 + i);
-      v = Math.max(base * 0.5, v * (1 + drift / 100));
-      out.push(Math.round(v));
-    }
-    out[out.length - 1] = Math.round(base);
-    return out;
   }
 
   private inferCountries(release: Release): string[] {
