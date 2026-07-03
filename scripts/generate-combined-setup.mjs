@@ -43,29 +43,74 @@ function patchSeed003(sql) {
     `ON CONFLICT (name, country_id) DO NOTHING;\n\n-- Venues`
   );
 
-  // Remove legacy sample releases — full mock seed appended at end
+  // Remove legacy sample releases — full mock seed appended at end of file
   out = out.replace(
     /-- Sample Releases[\s\S]*?ON CONFLICT \(slug\) DO NOTHING;\n\n/,
     "-- Sample releases: see full_mock_seed section at end of file\n\n"
   );
 
+  // Remove broken sample release_updates / release_scores (orphan slugs vs full_mock_seed)
   out = out.replace(
-    /-- Sample release updates[\s\S]*?WHERE ru\.release_id = v\.release_id AND ru\.summary = v\.summary\n  \);\n\n/,
+    /-- Sample release updates\nINSERT INTO release_updates[\s\S]*?\);\n\n/,
+    ""
+  );
+  out = out.replace(
+    /-- Sample release scores\nINSERT INTO release_scores[\s\S]*?\);\n?/,
     ""
   );
 
+  // Idempotent patched variants (if present from older generator output)
   out = out.replace(
-    /-- Sample release scores[\s\S]*?WHERE rs\.release_id = v\.release_id AND rs\.short_summary = v\.short_summary\n  \);\n?/,
+    /-- Sample release updates\nINSERT INTO release_updates \(release_id[\s\S]*?WHERE ru\.release_id = v\.release_id AND ru\.summary = v\.summary\n  \);\n\n/,
     ""
   );
-
-  // Fallback if patch above didn't match (unpatched 003)
   out = out.replace(
-    /-- Sample Releases[\s\S]*?ON CONFLICT \(slug\) DO NOTHING;\n\n-- Sample release updates[\s\S]*?\);\n\n-- Sample release scores[\s\S]*?\);\n?/,
-    "-- Sample releases: see full_mock_seed section at end of file\n\n"
+    /-- Sample release scores\nINSERT INTO release_scores \(release_id[\s\S]*?WHERE rs\.release_id = v\.release_id AND rs\.short_summary = v\.short_summary\n  \);\n?/,
+    ""
   );
 
   return out;
+}
+
+const anonReadPolicies = `
+-- ${"=".repeat(60)}
+-- ===== Dev: anon read policies (auth disabled) =====
+-- ${"=".repeat(60)}
+
+-- Dev: anon leesrechten op publieke data (auth staat uit)
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'releases','release_categories','brands','artists','sports_leagues','teams',
+    'venues','countries','cities','release_updates','release_scores','release_sources',
+    'source_adapters','scan_jobs','scan_logs','calendar_events','alert_rules','alert_events'
+  ] LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Dev anon read %s" ON %I', t, t);
+    EXECUTE format('CREATE POLICY "Dev anon read %s" ON %I FOR SELECT TO anon, authenticated USING (true)', t, t);
+  END LOOP;
+END $$;
+`;
+
+function collectReleaseSeedSlugs(sql) {
+  const slugs = new Set();
+  const re = /,\s*\n\s*'([^']+)',\s*\n\s*\(SELECT id FROM release_categories WHERE slug/g;
+  for (const m of sql.matchAll(re)) slugs.add(m[1]);
+  return slugs;
+}
+
+function validateOrphanReleaseSlugInserts(sql, seedSlugs) {
+  const errors = [];
+  const insertBlocks = sql.split(/(?=INSERT INTO)/);
+  for (const block of insertBlocks) {
+    if (!/^INSERT INTO release_(updates|scores)\b/m.test(block)) continue;
+    for (const m of block.matchAll(/SELECT id FROM releases WHERE slug = '([^']+)'/g)) {
+      if (!seedSlugs.has(m[1])) {
+        errors.push(`Orphan release slug in INSERT: ${m[1]}`);
+      }
+    }
+  }
+  return errors;
 }
 
 function validateSql(sql) {
@@ -152,9 +197,23 @@ if (existsSync(mockSeedPath)) {
   combined += header("full_mock_seed.sql") + readFileSync(mockSeedPath, "utf8").trim() + "\n";
 }
 
+combined += anonReadPolicies;
 combined += verification;
 
-const validationErrors = validateSql(combined);
+const seedSlugs = collectReleaseSeedSlugs(combined);
+const validationErrors = [
+  ...validateSql(combined),
+  ...validateOrphanReleaseSlugInserts(combined, seedSlugs),
+];
+if (combined.includes("-- Sample release updates\nINSERT INTO release_updates")) {
+  validationErrors.push("003_seed still contains sample release_updates INSERT");
+}
+if (combined.includes("-- Sample release scores\nINSERT INTO release_scores")) {
+  validationErrors.push("003_seed still contains sample release_scores INSERT");
+}
+if (!combined.includes("Dev anon read %s")) {
+  validationErrors.push("Missing dev anon read policies block");
+}
 if (validationErrors.length) {
   console.error("SQL validation failed:", validationErrors.join("; "));
   process.exit(1);
