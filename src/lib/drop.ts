@@ -1,5 +1,6 @@
 import type { Release } from "@/types";
 import type { DropTimeInput } from "@/lib/time";
+import { classifyRelease } from "@/lib/categories/taxonomy";
 
 export type DropCategory = "sneakers" | "tickets" | "tcg" | "other";
 export type DropEventKind = "preorder" | "release" | "presale" | "general_sale";
@@ -44,14 +45,10 @@ function inferEventKind(release: Release): DropEventKind {
 }
 
 export function inferDropCategory(release: Release): DropCategory {
-  const slug = release.release_categories?.slug ?? "";
-  if (slug === "limited-sneakers" || release.brands?.name === "Nike" || release.brands?.name === "Jordan") {
-    return "sneakers";
-  }
-  if (release.release_type === "ticket" || slug.includes("ticket") || slug.includes("festival")) {
-    return "tickets";
-  }
-  if (release.tcg_name || slug === "tcg-collectibles") return "tcg";
+  const main = release.main_category ?? classifyRelease(release).main;
+  if (main === "schoenen") return "sneakers";
+  if (main === "tickets") return "tickets";
+  if (main === "kaarten") return "tcg";
   return "other";
 }
 

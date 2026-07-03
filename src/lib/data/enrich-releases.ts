@@ -4,6 +4,7 @@ import type { ResaleIntelligence } from "@/services/resale-intelligence.service"
 import { intelligenceEnrichmentService, type IntelligenceProfile } from "@/services/intelligence-enrichment.service";
 import { opportunityEngineService, type OpportunityEngineResult } from "@/services/opportunity-engine.service";
 import { assignOpportunityTiers } from "@/lib/scoring-v2";
+import { withCategoryFields } from "@/lib/categories/taxonomy";
 
 export type EnrichedRelease = Release &
   ResaleIntelligence &
@@ -11,10 +12,11 @@ export type EnrichedRelease = Release &
   OpportunityEngineResult;
 
 function enrichReleaseCore(release: Release): EnrichedRelease {
-  const resale = resaleIntelligenceService.analyze(release);
-  const intel = intelligenceEnrichmentService.enrich(release, resale);
-  const opportunity = opportunityEngineService.score(release, resale, intel);
-  return { ...release, ...resale, ...intel, ...opportunity };
+  const categorized = withCategoryFields(release);
+  const resale = resaleIntelligenceService.analyze(categorized);
+  const intel = intelligenceEnrichmentService.enrich(categorized, resale);
+  const opportunity = opportunityEngineService.score(categorized, resale, intel);
+  return { ...categorized, ...resale, ...intel, ...opportunity };
 }
 
 export function enrichRelease(release: Release): EnrichedRelease {

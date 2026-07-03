@@ -6,6 +6,7 @@ export interface BuyLocation {
   note?: string;
 }
 
+export type MainCategory = "schoenen" | "tickets" | "kaarten" | "overig";
 export type SaleType = "drop" | "raffle" | "preorder" | "voorverkoop" | "algemene_verkoop";
 export type PriorityLevel = "LOW" | "MEDIUM" | "HIGH" | "EXTREME";
 export type ReleaseStatus = "rumored" | "announced" | "presale" | "on_sale" | "sold_out" | "cancelled" | "ended";
@@ -58,6 +59,8 @@ export interface Release {
   drop_time_confirmed?: boolean;
   drop_timezone?: string;
   drop_event_type?: "preorder" | "release" | "presale" | "general_sale";
+  main_category?: MainCategory | null;
+  sub_category?: string | null;
   buy_locations?: BuyLocation[];
   hype_reason?: string | null;
   sale_type?: SaleType;

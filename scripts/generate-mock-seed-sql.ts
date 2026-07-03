@@ -6,6 +6,7 @@ import { writeFileSync } from "fs";
 import { resolve } from "path";
 import { generateMockReleases } from "../src/lib/data/mock-releases";
 import { enrichReleases } from "../src/lib/data/enrich-releases";
+import { classifyRelease } from "../src/lib/categories/taxonomy";
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -177,6 +178,7 @@ WHERE NOT EXISTS (SELECT 1 FROM alert_rules WHERE name = 'Nieuwe extreme drop');
   lines.push("\n-- Releases (enriched mock data)");
   for (const r of releases) {
     const catSlug = r.release_categories?.slug ?? "other";
+    const { main, sub } = classifyRelease(r);
     const brandSlug = r.brands?.name ? slugify(r.brands.name) : null;
     const artistSlug = r.artists?.name ? slugify(r.artists.name) : null;
     const leagueSlug = r.sports_leagues?.name ? slugify(r.sports_leagues.name) : null;
@@ -190,6 +192,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -214,6 +217,7 @@ INSERT INTO releases (
   ${sqlStr(r.official_url)}, ${sqlStr(r.source_url)}, ${sqlStr(r.description)},
   ${sqlTs(r.announced_at)}, ${sqlTs(r.presale_starts_at)}, ${sqlTs(r.general_sale_starts_at)}, ${sqlTs(r.release_starts_at)},
   ${sqlTs(r.drop_at ?? r.release_starts_at)}, ${sqlBool(r.drop_time_confirmed ?? false)}, ${sqlStr(r.drop_timezone ?? "Europe/Brussels")}, ${sqlStr(r.drop_event_type ?? "release")},
+  ${sqlStr(main)}, ${sqlStr(sub)},
   ${sqlNum(r.price_min)}, ${sqlNum(r.price_max)}, ${sqlStr(r.currency)}, ${sqlNum(r.stock_estimate)}, ${sqlNum(r.capacity_estimate)},
   ${sqlNum(r.hype_score)}, ${sqlNum(r.demand_score)}, ${sqlNum(r.urgency_score)}, ${sqlNum(r.sellout_probability)}, ${sqlNum(r.resale_interest_score)}, ${sqlNum(r.confidence_score)},
   ${sqlStr(r.priority_level)}::priority_level,

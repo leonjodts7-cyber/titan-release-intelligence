@@ -1,4 +1,5 @@
 import type { Release, BuyLocation, SaleType } from "@/types";
+import { classifyRelease } from "@/lib/categories/taxonomy";
 
 const KNALLER_SLUGS = new Set([
   "aj1-travis-medium-olive",
@@ -11,17 +12,21 @@ const KNALLER_SLUGS = new Set([
   "ucl-final-2026-munich",
 ]);
 
-function saleTypeFor(spec: { categorySlug: string; dropEventKind?: string }): SaleType {
-  if (spec.dropEventKind === "presale") return "voorverkoop";
-  if (spec.dropEventKind === "preorder") return "preorder";
-  if (spec.categorySlug === "limited-sneakers") return "raffle";
+function saleTypeFor(release: Release): SaleType {
+  const sub = classifyRelease(release).sub;
+  if (release.drop_event_type === "presale") return "voorverkoop";
+  if (release.drop_event_type === "preorder") return "preorder";
+  if (sub === "football-boots" || release.release_categories?.slug === "limited-sneakers") return "raffle";
   return "drop";
 }
 
 function buildBuyLocations(release: Release): BuyLocation[] {
+  const main = classifyRelease(release).main;
+  const sub = classifyRelease(release).sub;
   const isTicket = release.release_type === "ticket";
-  const isTcg = Boolean(release.tcg_name);
-  const isSneaker = release.release_categories?.slug === "limited-sneakers";
+  const isTcg = main === "kaarten";
+  const isSneaker = main === "schoenen";
+  const isFootballBoot = sub === "football-boots";
 
   if (isTicket) {
     return [
@@ -40,6 +45,14 @@ function buildBuyLocations(release: Release): BuyLocation[] {
       { name: "Pokémon Center", type: "online", url: "https://www.pokemoncenter.com", country: "NL", note: "15:00 CET" },
       { name: "bol.com", type: "online", url: "https://www.bol.com", country: "BE" },
       { name: "Game Mania", type: "fysiek", url: "https://www.gamemania.be", country: "BE" },
+    ];
+  }
+
+  if (isFootballBoot) {
+    return [
+      { name: "SNKRS", type: "online", url: "https://www.nike.com/launch", country: "NL", note: "09:00 CET" },
+      { name: "Adidas Confirmed", type: "online", url: "https://www.adidas.com", country: "BE" },
+      { name: "Pro-Direct", type: "online", url: "https://www.prodirectsoccer.com", country: "GB" },
     ];
   }
 
@@ -81,14 +94,13 @@ function buildHypeReason(release: Release, index: number): string | null {
 export function enrichMockRelease(release: Release, index: number): Release {
   const buy_locations = buildBuyLocations(release);
   const hype_reason = buildHypeReason(release, index);
-  const categorySlug = release.release_categories?.slug ?? "";
 
   return {
     ...release,
     description: buildDescription(release),
     buy_locations,
     hype_reason,
-    sale_type: saleTypeFor({ categorySlug, dropEventKind: release.drop_event_type }),
+    sale_type: saleTypeFor(release),
     source_name: "TITAN Mock",
     source_checked_at: new Date().toISOString(),
   };

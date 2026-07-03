@@ -11,6 +11,7 @@ import { Badge, tierBadgeLabel } from "@/components/ui/badge";
 import { DropCountdown } from "@/components/drops/drop-countdown";
 import { DropDetailDrawer } from "@/components/drops/drop-detail-drawer";
 import { t } from "@/lib/i18n";
+import { classifyRelease, MAIN_CATEGORIES } from "@/lib/categories/taxonomy";
 import { cn } from "@/lib/utils";
 
 const CATEGORY_ICONS: Record<DropCategory, typeof Package> = {
@@ -23,9 +24,10 @@ const CATEGORY_ICONS: Record<DropCategory, typeof Package> = {
 interface DropCardProps {
   release: EnrichedRelease;
   compact?: boolean;
+  categoryAccent?: boolean;
 }
 
-export function DropCard({ release, compact }: DropCardProps) {
+export function DropCard({ release, compact, categoryAccent }: DropCardProps) {
   const [open, setOpen] = useState(false);
   const meta = getDropMeta(release);
   const Icon = CATEGORY_ICONS[meta.dropCategory];
@@ -51,12 +53,17 @@ export function DropCard({ release, compact }: DropCardProps) {
         ? t("drops.eventPresale")
         : t("drops.eventRelease");
 
+  const mainCat = classifyRelease(release).main;
+  const catBorder = categoryAccent ? MAIN_CATEGORIES[mainCat].border : "";
+
   return (
     <>
       <article
         className={cn(
           "rounded-xl border border-titan-border bg-titan-surface hover:border-zinc-500 transition-all",
-          compact ? "p-2.5" : "p-3"
+          compact ? "p-2.5" : "p-3",
+          categoryAccent && "border-l-4",
+          catBorder
         )}
       >
         <div className="flex items-start gap-2.5">

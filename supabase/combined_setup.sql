@@ -1,5 +1,5 @@
 -- TITAN Release Intelligence — Combined setup script
--- Generated from migrations: 000_base_schema.sql, 002_rls.sql, 003_seed.sql, 004_resale.sql, 005_v4_deal_execution.sql, 006_v5_elite_intelligence.sql, 007_v6_alerts.sql, 008_v2_scoring_money_portfolio.sql, 009_auth_rls.sql, 010_auth_disabled_rls.sql, 011_drop_times.sql, 012_v5_drop_detail_ingest.sql
+-- Generated from migrations: 000_base_schema.sql, 002_rls.sql, 003_seed.sql, 004_resale.sql, 005_v4_deal_execution.sql, 006_v5_elite_intelligence.sql, 007_v6_alerts.sql, 008_v2_scoring_money_portfolio.sql, 009_auth_rls.sql, 010_auth_disabled_rls.sql, 011_drop_times.sql, 012_v5_drop_detail_ingest.sql, 013_v7_categories.sql
 -- Skipped: 001_schema.sql (overlaps with 000_base_schema.sql)
 -- Includes: full mock seed (2026-07-03)
 --
@@ -1216,11 +1216,27 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_releases_external_source
   WHERE external_source IS NOT NULL AND external_source_id IS NOT NULL;
 
 -- ========================================
+-- ===== 013_v7_categories.sql =====
+-- ========================================
+
+-- TITAN v7: main + sub category taxonomy
+
+ALTER TABLE releases ADD COLUMN IF NOT EXISTS main_category TEXT;
+ALTER TABLE releases ADD COLUMN IF NOT EXISTS sub_category TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_releases_main_category ON releases(main_category);
+CREATE INDEX IF NOT EXISTS idx_releases_sub_category ON releases(sub_category);
+CREATE INDEX IF NOT EXISTS idx_releases_main_sub ON releases(main_category, sub_category);
+
+COMMENT ON COLUMN releases.main_category IS 'schoenen | tickets | kaarten | overig';
+COMMENT ON COLUMN releases.sub_category IS 'Subcategorie slug binnen hoofdcategorie';
+
+-- ========================================
 -- ===== full_mock_seed.sql =====
 -- ========================================
 
--- Full mock seed: 83 releases (idempotent)
--- Generated: 2026-07-03T08:32:28.241Z
+-- Full mock seed: 88 releases (idempotent)
+-- Generated: 2026-07-03T08:53:48.999Z
 
 -- Reference: categories
 INSERT INTO release_categories (name, slug, icon) VALUES ('Limited Sneakers', 'limited-sneakers', 'shoe') ON CONFLICT (slug) DO NOTHING;
@@ -1231,6 +1247,9 @@ INSERT INTO release_categories (name, slug, icon) VALUES ('Champions League', 'c
 INSERT INTO release_categories (name, slug, icon) VALUES ('World Cup', 'world-cup', 'trophy') ON CONFLICT (slug) DO NOTHING;
 INSERT INTO release_categories (name, slug, icon) VALUES ('Sport Tickets', 'sport-tickets', 'trophy') ON CONFLICT (slug) DO NOTHING;
 INSERT INTO release_categories (name, slug, icon) VALUES ('Festivals', 'festivals', 'festival') ON CONFLICT (slug) DO NOTHING;
+INSERT INTO release_categories (name, slug, icon) VALUES ('Voetbalschoenen', 'football-boots', 'box') ON CONFLICT (slug) DO NOTHING;
+INSERT INTO release_categories (name, slug, icon) VALUES ('Collabs', 'collabs', 'box') ON CONFLICT (slug) DO NOTHING;
+INSERT INTO release_categories (name, slug, icon) VALUES ('Running', 'running', 'box') ON CONFLICT (slug) DO NOTHING;
 INSERT INTO release_categories (name, slug, icon) VALUES ('Fashion Drops', 'fashion-drops', 'shirt') ON CONFLICT (slug) DO NOTHING;
 INSERT INTO release_categories (name, slug, icon) VALUES ('Gaming', 'gaming', 'gamepad') ON CONFLICT (slug) DO NOTHING;
 
@@ -1420,6 +1439,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1442,8 +1462,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/dunk-low-snkrs-nl-live', 'https://source.example.com/dunk-low-snkrs-nl-live', 'Nike Dunk Low Retro — SNKRS NL is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-06-19T11:32:28.228Z'::timestamptz, '2026-06-22T11:32:28.228Z'::timestamptz, '2026-07-03T11:32:28.228Z'::timestamptz,
-  '2026-07-03T11:32:28.228Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-06-19T11:53:48.985Z'::timestamptz, '2026-06-22T11:53:48.985Z'::timestamptz, '2026-07-03T11:53:48.985Z'::timestamptz,
+  '2026-07-03T11:53:48.985Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'schoenen', 'limited-sneakers',
   120, 120, 'EUR', 8000, NULL,
   88, 86, 73, 92, 66, 67,
   'EXTREME'::priority_level,
@@ -1457,7 +1478,7 @@ INSERT INTO releases (
   'HIGH', 'Estimated net ROI 30.2% after stockx fees (EUR). Confidence 41% from 18% estimate spread and data freshness. (Estimated)',
   63, 71, 25, 50, 87, 'HIGH PRIORITY',
   85, 96, 67,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/dunk-low-snkrs-nl-live","country":"BE"}]'::jsonb, 'Grail-silhouet met beperkte stock — vergelijkbare drops deden +120–180% netto ROI.', 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/dunk-low-snkrs-nl-live","country":"BE"}]'::jsonb, 'Grail-silhouet met beperkte stock — vergelijkbare drops deden +120–180% netto ROI.', 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1465,6 +1486,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1487,8 +1509,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/surging-sparks-bundle-soon', 'https://source.example.com/surging-sparks-bundle-soon', 'Pokémon Surging Sparks Booster Bundle is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-06-20T02:32:28.228Z'::timestamptz, '2026-06-23T02:32:28.228Z'::timestamptz, '2026-07-04T02:32:28.228Z'::timestamptz,
-  '2026-07-04T02:32:28.228Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-06-20T02:53:48.985Z'::timestamptz, '2026-06-23T02:53:48.985Z'::timestamptz, '2026-07-04T02:53:48.985Z'::timestamptz,
+  '2026-07-04T02:53:48.985Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'kaarten', 'pokemon',
   32, 32, 'EUR', 12000, NULL,
   72, 70, 61, 78, 54, 63,
   'HIGH'::priority_level,
@@ -1500,9 +1523,9 @@ INSERT INTO releases (
   37.9, 50, 64.5,
   38, 72, 74,
   'HIGH', 'Estimated net ROI 18.8% after tcgplayer fees (EUR). Confidence 38% from 18% estimate spread and data freshness. (Estimated)',
-  55, 65, 23, 50, 72, 'WATCH',
+  55, 65, 23, 50, 72, 'IGNORE',
   72, 66, 32,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1510,6 +1533,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1532,8 +1556,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Antwerp' AND co.code = 'BE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/taylor-antwerp-presale', 'https://source.example.com/taylor-antwerp-presale', 'Taylor Swift — Antwerp (Presale) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-06-20T06:32:28.228Z'::timestamptz, '2026-06-23T06:32:28.228Z'::timestamptz, '2026-07-04T06:32:28.228Z'::timestamptz,
-  '2026-07-04T06:32:28.228Z'::timestamptz, true, 'Europe/Brussels', 'presale',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-06-20T06:53:48.985Z'::timestamptz, '2026-06-23T06:53:48.985Z'::timestamptz, '2026-07-04T06:53:48.985Z'::timestamptz,
+  '2026-07-04T06:53:48.985Z'::timestamptz, true, 'Europe/Brussels', 'presale',
+  'tickets', 'concerts',
   89, 295, 'EUR', NULL, 23000,
   95, 96, 77, 97, 71, 69,
   'EXTREME'::priority_level,
@@ -1547,7 +1572,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -27.1% after stubhub fees (EUR). Confidence 26% from 13% estimate spread and data freshness. (Estimated)',
   65, 88, 11, 70, 87, 'MUST WATCH',
   94, 78, 86,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/taylor-antwerp-presale","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'voorverkoop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/taylor-antwerp-presale","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'voorverkoop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1555,6 +1580,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1577,8 +1603,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'London' AND co.code = 'GB' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://www.ticketmaster.co.uk/taylor-swift-london', 'https://source.example.com/taylor-swift-london-jun-2026', 'Taylor Swift — London (Jun 2026) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-06-27T07:00:00.000Z'::timestamptz, '2026-06-30T07:00:00.000Z'::timestamptz, '2026-07-11T07:00:00.000Z'::timestamptz,
-  '2026-07-11T07:00:00.000Z'::timestamptz, true, 'Europe/London', 'general_sale',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-06-26T07:00:00.000Z'::timestamptz, '2026-06-29T07:00:00.000Z'::timestamptz, '2026-07-10T07:00:00.000Z'::timestamptz,
+  '2026-07-10T07:00:00.000Z'::timestamptz, true, 'Europe/London', 'general_sale',
+  'tickets', 'concerts',
   95, 380, 'GBP', NULL, 90000,
   96, 97, 78, 98, 72, 69,
   'EXTREME'::priority_level,
@@ -1592,7 +1619,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -27% after stubhub fees (EUR). Confidence 22% from 13% estimate spread and data freshness. (Estimated)',
   64, 74, 11, 70, 90, 'MUST WATCH',
   93, 90, 46,
-  '[{"name":"Ticketmaster","type":"online","url":"https://www.ticketmaster.co.uk/taylor-swift-london","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://www.ticketmaster.co.uk/taylor-swift-london","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1600,6 +1627,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1622,8 +1650,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Paris' AND co.code = 'FR' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/coldplay-paris-jul-2026', 'https://source.example.com/coldplay-paris-jul-2026', 'Coldplay — Paris (Jul 2026) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-06-29T08:00:00.000Z'::timestamptz, '2026-07-02T08:00:00.000Z'::timestamptz, '2026-07-13T08:00:00.000Z'::timestamptz,
-  '2026-07-13T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-06-28T08:00:00.000Z'::timestamptz, '2026-07-01T08:00:00.000Z'::timestamptz, '2026-07-12T08:00:00.000Z'::timestamptz,
+  '2026-07-12T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   78, 240, 'EUR', NULL, 80000,
   88, 90, 73, 92, 66, 67,
   'HIGH'::priority_level,
@@ -1637,7 +1666,7 @@ INSERT INTO releases (
   'HIGH', 'Estimated net ROI -27% after stubhub fees (EUR). Confidence 37% from 13% estimate spread and data freshness. (Estimated)',
   59, 71, 11, 60, 83, 'WATCH',
   86, 74, 94,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/coldplay-paris-jul-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/coldplay-paris-jul-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1645,6 +1674,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1667,8 +1697,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Toronto' AND co.code = 'CA' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/drake-toronto-aug-2026', 'https://source.example.com/drake-toronto-aug-2026', 'Drake — Toronto (Aug 2026) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-01T13:00:00.000Z'::timestamptz, '2026-07-04T13:00:00.000Z'::timestamptz, '2026-07-15T13:00:00.000Z'::timestamptz,
-  '2026-07-15T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-06-30T13:00:00.000Z'::timestamptz, '2026-07-03T13:00:00.000Z'::timestamptz, '2026-07-14T13:00:00.000Z'::timestamptz,
+  '2026-07-14T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   110, 320, 'CAD', NULL, 20000,
   82, 84, 69, 86, 62, 66,
   'HIGH'::priority_level,
@@ -1682,7 +1713,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -27% after stubhub fees (EUR). Confidence 33% from 13% estimate spread and data freshness. (Estimated)',
   60, 90, 10, 70, 78, 'WATCH',
   82, 69, 58,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/drake-toronto-aug-2026","country":"CA","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/drake-toronto-aug-2026","country":"CA","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1690,6 +1721,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1712,8 +1744,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Houston' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/travis-scott-houston-sep-2026', 'https://source.example.com/travis-scott-houston-sep-2026', 'Travis Scott — Houston (Sep 2026) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-03T07:00:00.000Z'::timestamptz, '2026-07-06T07:00:00.000Z'::timestamptz, '2026-07-17T07:00:00.000Z'::timestamptz,
-  '2026-07-17T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-02T07:00:00.000Z'::timestamptz, '2026-07-05T07:00:00.000Z'::timestamptz, '2026-07-16T07:00:00.000Z'::timestamptz,
+  '2026-07-16T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'collabs',
   85, 260, 'USD', NULL, 72000,
   91, 93, 75, 94, 68, 68,
   'EXTREME'::priority_level,
@@ -1727,7 +1760,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -27% after stubhub fees (EUR). Confidence 29% from 13% estimate spread and data freshness. (Estimated)',
   62, 72, 11, 70, 87, 'HIGH PRIORITY',
   89, 89, 62,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/travis-scott-houston-sep-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/travis-scott-houston-sep-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1735,6 +1768,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1757,8 +1791,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Los Angeles' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/beyonce-la-oct-2026', 'https://source.example.com/beyonce-la-oct-2026', 'Beyoncé — Los Angeles (Oct 2026) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-05T08:00:00.000Z'::timestamptz, '2026-07-08T08:00:00.000Z'::timestamptz, '2026-07-19T08:00:00.000Z'::timestamptz,
-  '2026-07-19T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-04T08:00:00.000Z'::timestamptz, '2026-07-07T08:00:00.000Z'::timestamptz, '2026-07-18T08:00:00.000Z'::timestamptz,
+  '2026-07-18T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   120, 420, 'USD', NULL, 70000,
   94, 95, 77, 96, 71, 69,
   'EXTREME'::priority_level,
@@ -1772,7 +1807,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -27% after stubhub fees (EUR). Confidence 26% from 13% estimate spread and data freshness. (Estimated)',
   61, 73, 11, 70, 85, 'HIGH PRIORITY',
   92, 72, 81,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/beyonce-la-oct-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/beyonce-la-oct-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1780,6 +1815,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1802,8 +1838,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Madrid' AND co.code = 'ES' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/bad-bunny-madrid-nov-2026', 'https://source.example.com/bad-bunny-madrid-nov-2026', 'Bad Bunny — Madrid (Nov 2026) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-07T13:00:00.000Z'::timestamptz, '2026-07-10T13:00:00.000Z'::timestamptz, '2026-07-21T13:00:00.000Z'::timestamptz,
-  '2026-07-21T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-06T13:00:00.000Z'::timestamptz, '2026-07-09T13:00:00.000Z'::timestamptz, '2026-07-20T13:00:00.000Z'::timestamptz,
+  '2026-07-20T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   65, 210, 'EUR', NULL, 60000,
   86, 88, 71, 89, 65, 67,
   'HIGH'::priority_level,
@@ -1817,7 +1854,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -27% after stubhub fees (EUR). Confidence 22% from 13% estimate spread and data freshness. (Estimated)',
   60, 70, 11, 70, 85, 'WATCH',
   83, 94, 67,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/bad-bunny-madrid-nov-2026","country":"ES","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/bad-bunny-madrid-nov-2026","country":"ES","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1825,6 +1862,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1847,8 +1885,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Berlin' AND co.code = 'DE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/billie-eilish-berlin-dec-2026', 'https://source.example.com/billie-eilish-berlin-dec-2026', 'Billie Eilish — Berlin (Dec 2026) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-09T07:00:00.000Z'::timestamptz, '2026-07-12T07:00:00.000Z'::timestamptz, '2026-07-23T07:00:00.000Z'::timestamptz,
-  '2026-07-23T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-08T07:00:00.000Z'::timestamptz, '2026-07-11T07:00:00.000Z'::timestamptz, '2026-07-22T07:00:00.000Z'::timestamptz,
+  '2026-07-22T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   68, 175, 'EUR', NULL, 17000,
   79, 81, 66, 83, 59, 65,
   'MEDIUM'::priority_level,
@@ -1862,7 +1901,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.3% after stubhub fees (EUR). Confidence 22% from 32% estimate spread and data freshness. (Estimated)',
   61, 93, 14, 70, 76, 'HIGH PRIORITY',
   77, 67, 55,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/billie-eilish-berlin-dec-2026","country":"DE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/billie-eilish-berlin-dec-2026","country":"DE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1870,6 +1909,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1892,8 +1932,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Manchester' AND co.code = 'GB' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/ed-sheeran-manchester-jan-2027', 'https://source.example.com/ed-sheeran-manchester-jan-2027', 'Ed Sheeran — Manchester (Jan 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-12T08:00:00.000Z'::timestamptz, '2026-07-15T08:00:00.000Z'::timestamptz, '2026-07-26T08:00:00.000Z'::timestamptz,
-  '2026-07-26T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-10T08:00:00.000Z'::timestamptz, '2026-07-13T08:00:00.000Z'::timestamptz, '2026-07-24T08:00:00.000Z'::timestamptz,
+  '2026-07-24T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   58, 155, 'GBP', NULL, 55000,
   74, 76, 62, 78, 56, 64,
   'MEDIUM'::priority_level,
@@ -1907,7 +1948,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 18% from 32% estimate spread and data freshness. (Estimated)',
   54, 65, 14, 70, 74, 'IGNORE',
   74, 74, 48,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/ed-sheeran-manchester-jan-2027","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/ed-sheeran-manchester-jan-2027","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1915,6 +1956,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1937,8 +1979,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Amsterdam' AND co.code = 'NL' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/dua-lipa-amsterdam-feb-2027', 'https://source.example.com/dua-lipa-amsterdam-feb-2027', 'Dua Lipa — Amsterdam (Feb 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-14T13:00:00.000Z'::timestamptz, '2026-07-17T13:00:00.000Z'::timestamptz, '2026-07-28T13:00:00.000Z'::timestamptz,
-  '2026-07-28T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-12T13:00:00.000Z'::timestamptz, '2026-07-15T13:00:00.000Z'::timestamptz, '2026-07-26T13:00:00.000Z'::timestamptz,
+  '2026-07-26T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   62, 168, 'EUR', NULL, 17000,
   77, 79, 65, 81, 58, 64,
   'MEDIUM'::priority_level,
@@ -1952,7 +1995,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 14% from 32% estimate spread and data freshness. (Estimated)',
   61, 93, 14, 70, 75, 'HIGH PRIORITY',
   76, 71, 53,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/dua-lipa-amsterdam-feb-2027","country":"NL","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/dua-lipa-amsterdam-feb-2027","country":"NL","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -1960,6 +2003,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -1982,8 +2026,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Brussels' AND co.code = 'BE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/the-weeknd-brussels-mar-2027', 'https://source.example.com/the-weeknd-brussels-mar-2027', 'The Weeknd — Brussels (Mar 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-16T07:00:00.000Z'::timestamptz, '2026-07-19T07:00:00.000Z'::timestamptz, '2026-07-30T07:00:00.000Z'::timestamptz,
-  '2026-07-30T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-14T07:00:00.000Z'::timestamptz, '2026-07-17T07:00:00.000Z'::timestamptz, '2026-07-28T07:00:00.000Z'::timestamptz,
+  '2026-07-28T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   72, 225, 'EUR', NULL, 15000,
   80, 82, 67, 84, 60, 65,
   'HIGH'::priority_level,
@@ -1997,7 +2042,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 11% from 32% estimate spread and data freshness. (Estimated)',
   62, 94, 15, 70, 77, 'HIGH PRIORITY',
   80, 69, 69,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/the-weeknd-brussels-mar-2027","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/the-weeknd-brussels-mar-2027","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2005,6 +2050,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2027,8 +2073,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Dublin' AND co.code = 'IE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/arctic-monkeys-dublin-apr-2027', 'https://source.example.com/arctic-monkeys-dublin-apr-2027', 'Arctic Monkeys — Dublin (Apr 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-18T08:00:00.000Z'::timestamptz, '2026-07-21T08:00:00.000Z'::timestamptz, '2026-08-01T08:00:00.000Z'::timestamptz,
-  '2026-08-01T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-16T08:00:00.000Z'::timestamptz, '2026-07-19T08:00:00.000Z'::timestamptz, '2026-07-30T08:00:00.000Z'::timestamptz,
+  '2026-07-30T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   55, 140, 'EUR', NULL, 13000,
   71, 73, 60, 75, 53, 63,
   'MEDIUM'::priority_level,
@@ -2042,7 +2089,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 8% from 32% estimate spread and data freshness. (Estimated)',
   59, 96, 14, 70, 71, 'WATCH',
   72, 67, 55,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/arctic-monkeys-dublin-apr-2027","country":"IE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/arctic-monkeys-dublin-apr-2027","country":"IE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2050,6 +2097,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2072,8 +2120,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Vienna' AND co.code = 'AT' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/post-malone-vienna-may-2027', 'https://source.example.com/post-malone-vienna-may-2027', 'Post Malone — Vienna (May 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-20T13:00:00.000Z'::timestamptz, '2026-07-23T13:00:00.000Z'::timestamptz, '2026-08-03T13:00:00.000Z'::timestamptz,
-  '2026-08-03T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-18T13:00:00.000Z'::timestamptz, '2026-07-21T13:00:00.000Z'::timestamptz, '2026-08-01T13:00:00.000Z'::timestamptz,
+  '2026-08-01T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   60, 165, 'EUR', NULL, 16000,
   68, 70, 57, 72, 51, 62,
   'LOW'::priority_level,
@@ -2087,7 +2136,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 22% from 32% estimate spread and data freshness. (Estimated)',
   58, 93, 14, 70, 71, 'WATCH',
   68, 77, 64,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/post-malone-vienna-may-2027","country":"AT","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/post-malone-vienna-may-2027","country":"AT","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2095,6 +2144,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2117,8 +2167,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Stockholm' AND co.code = 'SE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/sza-stockholm-jun-2027', 'https://source.example.com/sza-stockholm-jun-2027', 'SZA — Stockholm (Jun 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-22T07:00:00.000Z'::timestamptz, '2026-07-25T07:00:00.000Z'::timestamptz, '2026-08-05T07:00:00.000Z'::timestamptz,
-  '2026-08-05T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-20T07:00:00.000Z'::timestamptz, '2026-07-23T07:00:00.000Z'::timestamptz, '2026-08-03T07:00:00.000Z'::timestamptz,
+  '2026-08-03T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   58, 150, 'EUR', NULL, 14000,
   73, 75, 61, 77, 55, 63,
   'MEDIUM'::priority_level,
@@ -2132,7 +2183,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 18% from 32% estimate spread and data freshness. (Estimated)',
   61, 95, 14, 70, 75, 'WATCH',
   75, 81, 69,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/sza-stockholm-jun-2027","country":"SE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/sza-stockholm-jun-2027","country":"SE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2140,6 +2191,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2162,8 +2214,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Rome' AND co.code = 'IT' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/olivia-rodrigo-rome-jul-2027', 'https://source.example.com/olivia-rodrigo-rome-jul-2027', 'Olivia Rodrigo — Rome (Jul 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-24T08:00:00.000Z'::timestamptz, '2026-07-27T08:00:00.000Z'::timestamptz, '2026-08-07T08:00:00.000Z'::timestamptz,
-  '2026-08-07T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-22T08:00:00.000Z'::timestamptz, '2026-07-25T08:00:00.000Z'::timestamptz, '2026-08-05T08:00:00.000Z'::timestamptz,
+  '2026-08-05T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   64, 178, 'EUR', NULL, 36000,
   76, 78, 64, 80, 57, 64,
   'MEDIUM'::priority_level,
@@ -2177,7 +2230,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 14% from 32% estimate spread and data freshness. (Estimated)',
   58, 77, 14, 70, 76, 'WATCH',
   74, 77, 51,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/olivia-rodrigo-rome-jul-2027","country":"IT","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/olivia-rodrigo-rome-jul-2027","country":"IT","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2185,6 +2238,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2207,8 +2261,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Copenhagen' AND co.code = 'DK' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/harry-styles-copenhagen-aug-2027', 'https://source.example.com/harry-styles-copenhagen-aug-2027', 'Harry Styles — Copenhagen (Aug 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-26T13:00:00.000Z'::timestamptz, '2026-07-29T13:00:00.000Z'::timestamptz, '2026-08-09T13:00:00.000Z'::timestamptz,
-  '2026-08-09T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-24T13:00:00.000Z'::timestamptz, '2026-07-27T13:00:00.000Z'::timestamptz, '2026-08-07T13:00:00.000Z'::timestamptz,
+  '2026-08-07T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   70, 195, 'EUR', NULL, 38000,
   78, 80, 65, 82, 59, 65,
   'HIGH'::priority_level,
@@ -2222,7 +2277,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 11% from 32% estimate spread and data freshness. (Estimated)',
   59, 75, 14, 70, 78, 'WATCH',
   77, 83, 58,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/harry-styles-copenhagen-aug-2027","country":"DK","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/harry-styles-copenhagen-aug-2027","country":"DK","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2230,6 +2285,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2252,8 +2308,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Munich' AND co.code = 'DE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/metallica-munich-sep-2027', 'https://source.example.com/metallica-munich-sep-2027', 'Metallica — Munich (Sep 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-28T07:00:00.000Z'::timestamptz, '2026-07-31T07:00:00.000Z'::timestamptz, '2026-08-11T07:00:00.000Z'::timestamptz,
-  '2026-08-11T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-26T07:00:00.000Z'::timestamptz, '2026-07-29T07:00:00.000Z'::timestamptz, '2026-08-09T07:00:00.000Z'::timestamptz,
+  '2026-08-09T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   88, 220, 'EUR', NULL, 75000,
   72, 74, 61, 76, 54, 63,
   'MEDIUM'::priority_level,
@@ -2267,7 +2324,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6.2% after stubhub fees (EUR). Confidence 8% from 32% estimate spread and data freshness. (Estimated)',
   53, 64, 14, 70, 71, 'IGNORE',
   73, 65, 77,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/metallica-munich-sep-2027","country":"DE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/metallica-munich-sep-2027","country":"DE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2275,6 +2332,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2297,8 +2355,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'London' AND co.code = 'GB' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/adele-london-oct-2027', 'https://source.example.com/adele-london-oct-2027', 'Adele — London (Oct 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-31T08:00:00.000Z'::timestamptz, '2026-08-03T08:00:00.000Z'::timestamptz, '2026-08-14T08:00:00.000Z'::timestamptz,
-  '2026-08-14T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-28T08:00:00.000Z'::timestamptz, '2026-07-31T08:00:00.000Z'::timestamptz, '2026-08-11T08:00:00.000Z'::timestamptz,
+  '2026-08-11T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   105, 350, 'GBP', NULL, 65000,
   90, 92, 75, 94, 68, 68,
   'EXTREME'::priority_level,
@@ -2312,7 +2371,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6% after stubhub fees (EUR). Confidence 22% from 32% estimate spread and data freshness. (Estimated)',
   63, 72, 15, 70, 86, 'HIGH PRIORITY',
   87, 83, 52,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/adele-london-oct-2027","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/adele-london-oct-2027","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2320,6 +2379,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2342,8 +2402,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Chicago' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/kendrick-chicago-nov-2027', 'https://source.example.com/kendrick-chicago-nov-2027', 'Kendrick Lamar — Chicago (Nov 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-02T13:00:00.000Z'::timestamptz, '2026-08-05T13:00:00.000Z'::timestamptz, '2026-08-16T13:00:00.000Z'::timestamptz,
-  '2026-08-16T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-30T13:00:00.000Z'::timestamptz, '2026-08-02T13:00:00.000Z'::timestamptz, '2026-08-13T13:00:00.000Z'::timestamptz,
+  '2026-08-13T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   75, 240, 'USD', NULL, 23000,
   83, 85, 69, 87, 62, 66,
   'HIGH'::priority_level,
@@ -2357,7 +2418,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6% after stubhub fees (EUR). Confidence 18% from 32% estimate spread and data freshness. (Estimated)',
   64, 88, 15, 70, 84, 'MUST WATCH',
   82, 96, 37,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/kendrick-chicago-nov-2027","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/kendrick-chicago-nov-2027","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2365,6 +2426,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2387,8 +2449,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Barcelona' AND co.code = 'ES' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/rosalia-barcelona-dec-2027', 'https://source.example.com/rosalia-barcelona-dec-2027', 'Rosalía — Barcelona (Dec 2027) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-04T07:00:00.000Z'::timestamptz, '2026-08-07T07:00:00.000Z'::timestamptz, '2026-08-18T07:00:00.000Z'::timestamptz,
-  '2026-08-18T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-01T07:00:00.000Z'::timestamptz, '2026-08-04T07:00:00.000Z'::timestamptz, '2026-08-15T07:00:00.000Z'::timestamptz,
+  '2026-08-15T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   52, 145, 'EUR', NULL, 55000,
   69, 71, 58, 73, 52, 62,
   'LOW'::priority_level,
@@ -2402,7 +2465,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6% after stubhub fees (EUR). Confidence 14% from 32% estimate spread and data freshness. (Estimated)',
   54, 63, 14, 70, 75, 'IGNORE',
   71, 95, 80,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/rosalia-barcelona-dec-2027","country":"ES","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/rosalia-barcelona-dec-2027","country":"ES","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2410,6 +2473,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2432,8 +2496,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Lisbon' AND co.code = 'PT' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/florence-lisbon-jan-2028', 'https://source.example.com/florence-lisbon-jan-2028', 'Florence + The Machine — Lisbon (Jan 2028) is een concert tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-06T08:00:00.000Z'::timestamptz, '2026-08-09T08:00:00.000Z'::timestamptz, '2026-08-20T08:00:00.000Z'::timestamptz,
-  '2026-08-20T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-03T08:00:00.000Z'::timestamptz, '2026-08-06T08:00:00.000Z'::timestamptz, '2026-08-17T08:00:00.000Z'::timestamptz,
+  '2026-08-17T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   48, 130, 'EUR', NULL, 20000,
   62, 64, 53, 66, 47, 61,
   'LOW'::priority_level,
@@ -2447,7 +2512,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6% after stubhub fees (EUR). Confidence 11% from 32% estimate spread and data freshness. (Estimated)',
   54, 90, 13, 70, 64, 'IGNORE',
   63, 62, 46,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/florence-lisbon-jan-2028","country":"PT","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/florence-lisbon-jan-2028","country":"PT","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2455,6 +2520,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2477,8 +2543,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'New Orleans' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/super-bowl-lxi-2027', 'https://source.example.com/super-bowl-lxi-2027', 'Super Bowl LXI — New Orleans is een super bowl met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-07-08T13:00:00.000Z'::timestamptz, '2026-07-11T13:00:00.000Z'::timestamptz, '2026-08-22T13:00:00.000Z'::timestamptz,
-  '2026-08-22T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-07-05T13:00:00.000Z'::timestamptz, '2026-07-08T13:00:00.000Z'::timestamptz, '2026-08-19T13:00:00.000Z'::timestamptz,
+  '2026-08-19T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'american-sports',
   550, 4800, 'USD', NULL, 73000,
   98, 99, 79, 99, 74, 70,
   'EXTREME'::priority_level,
@@ -2492,7 +2559,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6% after stubhub fees (EUR). Confidence 8% from 32% estimate spread and data freshness. (Estimated)',
   67, 75, 16, 70, 92, 'TOP OPPORTUNITY',
   98, 99, 76,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/super-bowl-lxi-2027","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/super-bowl-lxi-2027","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2500,6 +2567,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2522,8 +2590,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Munich' AND co.code = 'DE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/ucl-final-2026-munich', 'https://source.example.com/ucl-final-2026-munich', 'UEFA Champions League Final 2026 — Munich is een champions league met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-10T07:00:00.000Z'::timestamptz, '2026-08-13T07:00:00.000Z'::timestamptz, '2026-08-24T07:00:00.000Z'::timestamptz,
-  '2026-08-24T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-07T07:00:00.000Z'::timestamptz, '2026-08-10T07:00:00.000Z'::timestamptz, '2026-08-21T07:00:00.000Z'::timestamptz,
+  '2026-08-21T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'football',
   160, 850, 'EUR', NULL, 75000,
   93, 94, 76, 95, 70, 68,
   'EXTREME'::priority_level,
@@ -2537,7 +2606,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -6% after stubhub fees (EUR). Confidence 22% from 32% estimate spread and data freshness. (Estimated)',
   65, 73, 15, 70, 90, 'MUST WATCH',
   91, 99, 66,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/ucl-final-2026-munich","country":"DE","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/ucl-final-2026-munich","country":"DE","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2545,6 +2614,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2567,8 +2637,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'New York' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/world-cup-final-2026-nyc', 'https://source.example.com/world-cup-final-2026-nyc', 'FIFA World Cup Final 2026 — New York is een world cup met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-12T08:00:00.000Z'::timestamptz, '2026-08-15T08:00:00.000Z'::timestamptz, '2026-08-26T08:00:00.000Z'::timestamptz,
-  '2026-08-26T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-09T08:00:00.000Z'::timestamptz, '2026-08-12T08:00:00.000Z'::timestamptz, '2026-08-23T08:00:00.000Z'::timestamptz,
+  '2026-08-23T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'football',
   320, 2100, 'USD', NULL, 82500,
   97, 98, 78, 98, 73, 69,
   'EXTREME'::priority_level,
@@ -2582,7 +2653,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.9% after stubhub fees (EUR). Confidence 18% from 32% estimate spread and data freshness. (Estimated)',
   67, 74, 15, 70, 92, 'TOP OPPORTUNITY',
   97, 100, 53,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/world-cup-final-2026-nyc","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/world-cup-final-2026-nyc","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2590,6 +2661,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2612,8 +2684,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Madrid' AND co.code = 'ES' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/el-clasico-apr-2026', 'https://source.example.com/el-clasico-apr-2026', 'El Clásico — Bernabéu Apr 2026 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-14T13:00:00.000Z'::timestamptz, '2026-08-17T13:00:00.000Z'::timestamptz, '2026-08-28T13:00:00.000Z'::timestamptz,
-  '2026-08-28T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-11T13:00:00.000Z'::timestamptz, '2026-08-14T13:00:00.000Z'::timestamptz, '2026-08-25T13:00:00.000Z'::timestamptz,
+  '2026-08-25T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'football',
   85, 520, 'EUR', NULL, 81000,
   89, 91, 74, 93, 67, 67,
   'EXTREME'::priority_level,
@@ -2627,7 +2700,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.9% after stubhub fees (EUR). Confidence 14% from 32% estimate spread and data freshness. (Estimated)',
   63, 72, 15, 70, 86, 'HIGH PRIORITY',
   88, 89, 94,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/el-clasico-apr-2026","country":"ES","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/el-clasico-apr-2026","country":"ES","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.986Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2635,6 +2708,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2657,8 +2731,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'London' AND co.code = 'GB' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/pl-arsenal-liverpool-aug-2026', 'https://source.example.com/pl-arsenal-liverpool-aug-2026', 'Premier League — Arsenal vs Liverpool is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-16T07:00:00.000Z'::timestamptz, '2026-08-19T07:00:00.000Z'::timestamptz, '2026-08-30T07:00:00.000Z'::timestamptz,
-  '2026-08-30T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-13T07:00:00.000Z'::timestamptz, '2026-08-16T07:00:00.000Z'::timestamptz, '2026-08-27T07:00:00.000Z'::timestamptz,
+  '2026-08-27T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   65, 260, 'GBP', NULL, 60704,
   84, 86, 70, 88, 63, 66,
   'HIGH'::priority_level,
@@ -2672,7 +2747,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.9% after stubhub fees (EUR). Confidence 11% from 32% estimate spread and data freshness. (Estimated)',
   59, 70, 15, 70, 80, 'WATCH',
   82, 71, 75,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/pl-arsenal-liverpool-aug-2026","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/pl-arsenal-liverpool-aug-2026","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2680,6 +2755,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2702,8 +2778,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Boston' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/nba-finals-game7-2026', 'https://source.example.com/nba-finals-game7-2026', 'NBA Finals Game 7 — Boston is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-19T08:00:00.000Z'::timestamptz, '2026-08-22T08:00:00.000Z'::timestamptz, '2026-09-02T08:00:00.000Z'::timestamptz,
-  '2026-09-02T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-15T08:00:00.000Z'::timestamptz, '2026-08-18T08:00:00.000Z'::timestamptz, '2026-08-29T08:00:00.000Z'::timestamptz,
+  '2026-08-29T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'american-sports',
   220, 1600, 'USD', NULL, 19580,
   90, 92, 75, 94, 68, 68,
   'EXTREME'::priority_level,
@@ -2717,7 +2794,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.9% after stubhub fees (EUR). Confidence 8% from 32% estimate spread and data freshness. (Estimated)',
   67, 90, 15, 70, 87, 'MUST WATCH',
   90, 89, 67,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/nba-finals-game7-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/nba-finals-game7-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2725,6 +2802,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2747,8 +2825,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Monaco' AND co.code = 'MC' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/f1-monaco-2026', 'https://source.example.com/f1-monaco-2026', 'Formula 1 Monaco GP 2026 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-21T13:00:00.000Z'::timestamptz, '2026-08-24T13:00:00.000Z'::timestamptz, '2026-09-04T13:00:00.000Z'::timestamptz,
-  '2026-09-04T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-17T13:00:00.000Z'::timestamptz, '2026-08-20T13:00:00.000Z'::timestamptz, '2026-08-31T13:00:00.000Z'::timestamptz,
+  '2026-08-31T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'tennis-other',
   160, 820, 'EUR', NULL, 37000,
   86, 88, 72, 90, 65, 67,
   'HIGH'::priority_level,
@@ -2762,7 +2841,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 22% from 32% estimate spread and data freshness. (Estimated)',
   63, 76, 15, 70, 85, 'HIGH PRIORITY',
   87, 91, 38,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/f1-monaco-2026","country":"MC","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/f1-monaco-2026","country":"MC","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2770,6 +2849,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2792,8 +2872,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Las Vegas' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/ufc-320-las-vegas-2026', 'https://source.example.com/ufc-320-las-vegas-2026', 'UFC 320 — Las Vegas is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-23T07:00:00.000Z'::timestamptz, '2026-08-26T07:00:00.000Z'::timestamptz, '2026-09-06T07:00:00.000Z'::timestamptz,
-  '2026-09-06T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-19T07:00:00.000Z'::timestamptz, '2026-08-22T07:00:00.000Z'::timestamptz, '2026-09-02T07:00:00.000Z'::timestamptz,
+  '2026-09-02T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   155, 1250, 'USD', NULL, 20000,
   87, 89, 73, 91, 65, 67,
   'HIGH'::priority_level,
@@ -2807,7 +2888,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 18% from 32% estimate spread and data freshness. (Estimated)',
   63, 90, 15, 70, 81, 'HIGH PRIORITY',
   86, 67, 73,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/ufc-320-las-vegas-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/ufc-320-las-vegas-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2815,6 +2896,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2837,8 +2919,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'London' AND co.code = 'GB' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/wimbledon-final-2026', 'https://source.example.com/wimbledon-final-2026', 'Wimbledon Gentlemen''s Final 2026 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-25T08:00:00.000Z'::timestamptz, '2026-08-28T08:00:00.000Z'::timestamptz, '2026-09-08T08:00:00.000Z'::timestamptz,
-  '2026-09-08T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-21T08:00:00.000Z'::timestamptz, '2026-08-24T08:00:00.000Z'::timestamptz, '2026-09-04T08:00:00.000Z'::timestamptz,
+  '2026-09-04T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'tennis-other',
   110, 620, 'GBP', NULL, 15000,
   82, 84, 69, 86, 62, 66,
   'HIGH'::priority_level,
@@ -2852,7 +2935,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 14% from 32% estimate spread and data freshness. (Estimated)',
   63, 94, 15, 70, 79, 'HIGH PRIORITY',
   81, 73, 69,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/wimbledon-final-2026","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/wimbledon-final-2026","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2860,6 +2943,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2882,8 +2966,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Boom' AND co.code = 'BE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/tomorrowland-2026-w1', 'https://source.example.com/tomorrowland-2026-w1', 'Tomorrowland 2026 — Weekend 1 is een festivals met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-27T13:00:00.000Z'::timestamptz, '2026-08-30T13:00:00.000Z'::timestamptz, '2026-09-10T13:00:00.000Z'::timestamptz,
-  '2026-09-10T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-23T13:00:00.000Z'::timestamptz, '2026-08-26T13:00:00.000Z'::timestamptz, '2026-09-06T13:00:00.000Z'::timestamptz,
+  '2026-09-06T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'festivals',
   125, 410, 'EUR', NULL, 400000,
   92, 94, 76, 95, 69, 68,
   'EXTREME'::priority_level,
@@ -2897,7 +2982,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 11% from 32% estimate spread and data freshness. (Estimated)',
   63, 73, 15, 70, 87, 'HIGH PRIORITY',
   91, 84, 62,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/tomorrowland-2026-w1","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/tomorrowland-2026-w1","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2905,6 +2990,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2927,8 +3013,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Paris' AND co.code = 'FR' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/six-nations-fr-ie-2026', 'https://source.example.com/six-nations-fr-ie-2026', 'Six Nations — France vs Ireland is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-29T07:00:00.000Z'::timestamptz, '2026-09-01T07:00:00.000Z'::timestamptz, '2026-09-12T07:00:00.000Z'::timestamptz,
-  '2026-09-12T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-25T07:00:00.000Z'::timestamptz, '2026-08-28T07:00:00.000Z'::timestamptz, '2026-09-08T07:00:00.000Z'::timestamptz,
+  '2026-09-08T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'football',
   70, 280, 'EUR', NULL, 81000,
   76, 78, 64, 80, 57, 64,
   'MEDIUM'::priority_level,
@@ -2942,7 +3029,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 8% from 32% estimate spread and data freshness. (Estimated)',
   55, 66, 14, 70, 75, 'IGNORE',
   76, 75, 65,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/six-nations-fr-ie-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/six-nations-fr-ie-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2950,6 +3037,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -2972,8 +3060,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Abu Dhabi' AND co.code = 'AE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/euroleague-final-four-2026', 'https://source.example.com/euroleague-final-four-2026', 'EuroLeague Final Four 2026 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-08-31T08:00:00.000Z'::timestamptz, '2026-09-03T08:00:00.000Z'::timestamptz, '2026-09-14T08:00:00.000Z'::timestamptz,
-  '2026-09-14T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-27T08:00:00.000Z'::timestamptz, '2026-08-30T08:00:00.000Z'::timestamptz, '2026-09-10T08:00:00.000Z'::timestamptz,
+  '2026-09-10T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   90, 450, 'EUR', NULL, 12000,
   70, 72, 59, 74, 53, 63,
   'MEDIUM'::priority_level,
@@ -2987,7 +3076,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 22% from 32% estimate spread and data freshness. (Estimated)',
   59, 97, 14, 70, 72, 'WATCH',
   71, 75, 41,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/euroleague-final-four-2026","country":"AE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/euroleague-final-four-2026","country":"AE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -2995,6 +3084,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3017,8 +3107,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Paris' AND co.code = 'FR' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/tdf-champs-2026', 'https://source.example.com/tdf-champs-2026', 'Tour de France — Champs-Élysées Stage is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-02T13:00:00.000Z'::timestamptz, '2026-09-05T13:00:00.000Z'::timestamptz, '2026-09-16T13:00:00.000Z'::timestamptz,
-  '2026-09-16T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-29T13:00:00.000Z'::timestamptz, '2026-09-01T13:00:00.000Z'::timestamptz, '2026-09-12T13:00:00.000Z'::timestamptz,
+  '2026-09-12T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   0, 120, 'EUR', NULL, 500000,
   65, 68, 56, 70, 49, 61,
   'LOW'::priority_level,
@@ -3032,7 +3123,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 18% from 32% estimate spread and data freshness. (Estimated)',
   51, 62, 14, 70, 69, 'IGNORE',
   67, 73, 49,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/tdf-champs-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/tdf-champs-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3040,6 +3131,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3062,8 +3154,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Bruges' AND co.code = 'BE' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/jupiler-derby-2026', 'https://source.example.com/jupiler-derby-2026', 'Belgian Pro League — Derby Brugge-Antwerp is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-04T07:00:00.000Z'::timestamptz, '2026-09-07T07:00:00.000Z'::timestamptz, '2026-09-18T07:00:00.000Z'::timestamptz,
-  '2026-09-18T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-08-31T07:00:00.000Z'::timestamptz, '2026-09-03T07:00:00.000Z'::timestamptz, '2026-09-14T07:00:00.000Z'::timestamptz,
+  '2026-09-14T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'football',
   35, 95, 'EUR', NULL, 29000,
   58, 60, 49, 62, 44, 60,
   'LOW'::priority_level,
@@ -3077,7 +3170,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 14% from 32% estimate spread and data freshness. (Estimated)',
   53, 83, 13, 70, 66, 'IGNORE',
   60, 87, 53,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/jupiler-derby-2026","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/jupiler-derby-2026","country":"BE","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3085,6 +3178,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3107,8 +3201,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Paris' AND co.code = 'FR' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/roland-garros-final-2026', 'https://source.example.com/roland-garros-final-2026', 'Roland-Garros Men''s Final 2026 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-07T08:00:00.000Z'::timestamptz, '2026-09-10T08:00:00.000Z'::timestamptz, '2026-09-21T08:00:00.000Z'::timestamptz,
-  '2026-09-21T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-02T08:00:00.000Z'::timestamptz, '2026-09-05T08:00:00.000Z'::timestamptz, '2026-09-16T08:00:00.000Z'::timestamptz,
+  '2026-09-16T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'tennis-other',
   95, 480, 'EUR', NULL, 15000,
   80, 82, 67, 84, 60, 65,
   'HIGH'::priority_level,
@@ -3122,7 +3217,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 11% from 32% estimate spread and data freshness. (Estimated)',
   62, 94, 15, 70, 78, 'HIGH PRIORITY',
   80, 74, 48,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/roland-garros-final-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/roland-garros-final-2026","country":"FR","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3130,6 +3225,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3152,8 +3248,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Chicago' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/nhl-winter-classic-2027', 'https://source.example.com/nhl-winter-classic-2027', 'NHL Winter Classic 2027 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-09T13:00:00.000Z'::timestamptz, '2026-09-12T13:00:00.000Z'::timestamptz, '2026-09-23T13:00:00.000Z'::timestamptz,
-  '2026-09-23T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-04T13:00:00.000Z'::timestamptz, '2026-09-07T13:00:00.000Z'::timestamptz, '2026-09-18T13:00:00.000Z'::timestamptz,
+  '2026-09-18T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'american-sports',
   130, 650, 'USD', NULL, 35000,
   74, 76, 62, 78, 56, 64,
   'MEDIUM'::priority_level,
@@ -3167,7 +3264,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.7% after stubhub fees (EUR). Confidence 8% from 32% estimate spread and data freshness. (Estimated)',
   59, 78, 14, 70, 79, 'WATCH',
   75, 98, 39,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/nhl-winter-classic-2027","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/nhl-winter-classic-2027","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3175,6 +3272,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3197,8 +3295,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Indianapolis' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/indy-500-2026', 'https://source.example.com/indy-500-2026', 'Indy 500 2026 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-11T07:00:00.000Z'::timestamptz, '2026-09-14T07:00:00.000Z'::timestamptz, '2026-09-25T07:00:00.000Z'::timestamptz,
-  '2026-09-25T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-06T07:00:00.000Z'::timestamptz, '2026-09-09T07:00:00.000Z'::timestamptz, '2026-09-20T07:00:00.000Z'::timestamptz,
+  '2026-09-20T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   45, 350, 'USD', NULL, 257000,
   72, 74, 61, 76, 54, 63,
   'MEDIUM'::priority_level,
@@ -3212,7 +3311,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.5% after stubhub fees (EUR). Confidence 22% from 32% estimate spread and data freshness. (Estimated)',
   53, 64, 14, 70, 72, 'IGNORE',
   71, 68, 57,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/indy-500-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/indy-500-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3220,6 +3319,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3242,8 +3342,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Pilton' AND co.code = 'GB' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/glastonbury-2026', 'https://source.example.com/glastonbury-2026', 'Glastonbury 2026 — General Sale is een festivals met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-13T08:00:00.000Z'::timestamptz, '2026-09-16T08:00:00.000Z'::timestamptz, '2026-09-27T08:00:00.000Z'::timestamptz,
-  '2026-09-27T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-08T08:00:00.000Z'::timestamptz, '2026-09-11T08:00:00.000Z'::timestamptz, '2026-09-22T08:00:00.000Z'::timestamptz,
+  '2026-09-22T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'festivals',
   355, 355, 'GBP', NULL, 200000,
   88, 90, 73, 92, 66, 67,
   'HIGH'::priority_level,
@@ -3257,7 +3358,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.5% after stubhub fees (EUR). Confidence 18% from 32% estimate spread and data freshness. (Estimated)',
   61, 71, 15, 70, 83, 'WATCH',
   88, 78, 62,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/glastonbury-2026","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/glastonbury-2026","country":"GB","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3265,6 +3366,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3287,8 +3389,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Miami' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/copa-america-final-2026', 'https://source.example.com/copa-america-final-2026', 'Copa América Final 2026 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-15T13:00:00.000Z'::timestamptz, '2026-09-18T13:00:00.000Z'::timestamptz, '2026-09-29T13:00:00.000Z'::timestamptz,
-  '2026-09-29T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-10T13:00:00.000Z'::timestamptz, '2026-09-13T13:00:00.000Z'::timestamptz, '2026-09-24T13:00:00.000Z'::timestamptz,
+  '2026-09-24T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   140, 720, 'USD', NULL, 65000,
   85, 87, 71, 89, 64, 66,
   'HIGH'::priority_level,
@@ -3302,7 +3405,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.5% after stubhub fees (EUR). Confidence 14% from 32% estimate spread and data freshness. (Estimated)',
   62, 70, 15, 70, 86, 'HIGH PRIORITY',
   86, 100, 59,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/copa-america-final-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/copa-america-final-2026","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3310,6 +3413,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3332,8 +3436,9 @@ INSERT INTO releases (
   (SELECT c.id FROM cities c JOIN countries co ON c.country_id = co.id WHERE c.name = 'Los Angeles' AND co.code = 'US' LIMIT 1),
   'ticket'::release_type, 'announced'::release_status,
   'https://official.example.com/olympics-opening-2028', 'https://source.example.com/olympics-opening-2028', 'Olympics Opening Ceremony 2028 is een sport tickets met extreme vraag. Ideaal voor monitoring van officiële voorverkoop en algemene verkoop — geen doorverkoop-advies in België.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-17T07:00:00.000Z'::timestamptz, '2026-09-20T07:00:00.000Z'::timestamptz, '2026-10-01T07:00:00.000Z'::timestamptz,
-  '2026-10-01T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-12T07:00:00.000Z'::timestamptz, '2026-09-15T07:00:00.000Z'::timestamptz, '2026-09-26T07:00:00.000Z'::timestamptz,
+  '2026-09-26T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'tickets', 'concerts',
   200, 1200, 'USD', NULL, 70000,
   91, 93, 75, 94, 68, 68,
   'EXTREME'::priority_level,
@@ -3347,7 +3452,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -5.4% after stubhub fees (EUR). Confidence 11% from 32% estimate spread and data freshness. (Estimated)',
   64, 72, 15, 70, 88, 'MUST WATCH',
   92, 92, 88,
-  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/olympics-opening-2028","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"Ticketmaster","type":"online","url":"https://official.example.com/olympics-opening-2028","country":"US","note":"Alleen officiële kanalen"}]'::jsonb, 'Massale vraag, beperkte capaciteit — monitoring essentieel voor voorverkoop.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3355,6 +3460,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3377,8 +3483,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/aj1-travis-medium-olive', 'https://source.example.com/aj1-travis-medium-olive', 'Air Jordan 1 Travis Scott Medium Olive is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-19T08:00:00.000Z'::timestamptz, '2026-09-22T08:00:00.000Z'::timestamptz, '2026-10-03T08:00:00.000Z'::timestamptz,
-  '2026-10-03T08:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-14T08:00:00.000Z'::timestamptz, '2026-09-17T08:00:00.000Z'::timestamptz, '2026-09-28T08:00:00.000Z'::timestamptz,
+  '2026-09-28T08:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'schoenen', 'collabs',
   150, 150, 'EUR', 6000, NULL,
   94, 92, 76, 96, 71, 69,
   'EXTREME'::priority_level,
@@ -3392,7 +3499,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI 135.8% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
   76, 73, 59, 60, 90, 'TOP OPPORTUNITY',
   93, 100, 51,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Jordan","type":"online","url":"https://official.example.com/aj1-travis-medium-olive","country":"BE"}]'::jsonb, 'Grail-silhouet met beperkte stock — vergelijkbare drops deden +120–180% netto ROI.', 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Jordan","type":"online","url":"https://official.example.com/aj1-travis-medium-olive","country":"BE"}]'::jsonb, 'Grail-silhouet met beperkte stock — vergelijkbare drops deden +120–180% netto ROI.', 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3400,6 +3507,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3422,8 +3530,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/dunk-low-panda-restock', 'https://source.example.com/dunk-low-panda-restock', 'Nike Dunk Low Panda Restock is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-21T13:00:00.000Z'::timestamptz, '2026-09-24T13:00:00.000Z'::timestamptz, '2026-10-05T13:00:00.000Z'::timestamptz,
-  '2026-10-05T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-16T13:00:00.000Z'::timestamptz, '2026-09-19T13:00:00.000Z'::timestamptz, '2026-09-30T13:00:00.000Z'::timestamptz,
+  '2026-09-30T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'limited-sneakers',
   110, 110, 'EUR', 85000, NULL,
   62, 58, 53, 68, 47, 61,
   'LOW'::priority_level,
@@ -3437,7 +3546,7 @@ INSERT INTO releases (
   'HIGH', 'Estimated net ROI -13.9% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
   39, 61, 5, 60, 62, 'IGNORE',
   60, 48, 60,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/dunk-low-panda-restock","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/dunk-low-panda-restock","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3445,6 +3554,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3458,7 +3568,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'Nike Mercurial Superfly Elite', 'mercurial-superfly-elite',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'football-boots'),
   (SELECT id FROM brands WHERE slug = 'nike'),
   NULL,
   NULL,
@@ -3466,9 +3576,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/mercurial-superfly-elite', 'https://source.example.com/mercurial-superfly-elite', 'Nike Mercurial Superfly Elite is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-23T07:00:00.000Z'::timestamptz, '2026-09-26T07:00:00.000Z'::timestamptz, '2026-10-07T07:00:00.000Z'::timestamptz,
-  '2026-10-07T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://www.nike.com/launch', 'https://source.example.com/mercurial-superfly-elite', 'Nike Mercurial Superfly Elite is een voetbalschoenen met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-18T07:00:00.000Z'::timestamptz, '2026-09-21T07:00:00.000Z'::timestamptz, '2026-10-02T07:00:00.000Z'::timestamptz,
+  '2026-10-02T07:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'schoenen', 'football-boots',
   220, 220, 'EUR', 4000, NULL,
   78, 75, 65, 82, 59, 65,
   'HIGH'::priority_level,
@@ -3482,7 +3593,7 @@ INSERT INTO releases (
   'HIGH', 'Estimated net ROI 16.9% after stockx fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
   58, 68, 22, 50, 79, 'WATCH',
   75, 89, 73,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/mercurial-superfly-elite","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET"},{"name":"Adidas Confirmed","type":"online","url":"https://www.adidas.com","country":"BE"},{"name":"Pro-Direct","type":"online","url":"https://www.prodirectsoccer.com","country":"GB"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3490,6 +3601,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3503,7 +3615,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'Nike Phantom GX Elite Drop', 'phantom-gx-elite',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'football-boots'),
   (SELECT id FROM brands WHERE slug = 'nike'),
   NULL,
   NULL,
@@ -3511,9 +3623,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/phantom-gx-elite', 'https://source.example.com/phantom-gx-elite', 'Nike Phantom GX Elite Drop is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-25T08:00:00.000Z'::timestamptz, '2026-09-28T08:00:00.000Z'::timestamptz, '2026-10-09T08:00:00.000Z'::timestamptz,
-  '2026-10-09T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://www.nike.com/launch', 'https://source.example.com/phantom-gx-elite', 'Nike Phantom GX Elite Drop is een voetbalschoenen met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-20T08:00:00.000Z'::timestamptz, '2026-09-23T08:00:00.000Z'::timestamptz, '2026-10-04T08:00:00.000Z'::timestamptz,
+  '2026-10-04T08:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'schoenen', 'football-boots',
   250, 250, 'EUR', 3500, NULL,
   74, 71, 61, 78, 56, 64,
   'MEDIUM'::priority_level,
@@ -3527,7 +3640,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI -2.4% after stockx fees (EUR). Confidence 34% from 23% estimate spread and data freshness. (Estimated)',
   54, 73, 16, 70, 71, 'IGNORE',
   72, 62, 69,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/phantom-gx-elite","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET"},{"name":"Adidas Confirmed","type":"online","url":"https://www.adidas.com","country":"BE"},{"name":"Pro-Direct","type":"online","url":"https://www.prodirectsoccer.com","country":"GB"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3535,6 +3648,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3548,7 +3662,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'Adidas F50 Elite Limited', 'adidas-f50-elite',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'football-boots'),
   (SELECT id FROM brands WHERE slug = 'adidas'),
   NULL,
   NULL,
@@ -3556,9 +3670,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/adidas-f50-elite', 'https://source.example.com/adidas-f50-elite', 'Adidas F50 Elite Limited is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-28T13:00:00.000Z'::timestamptz, '2026-10-01T13:00:00.000Z'::timestamptz, '2026-10-12T13:00:00.000Z'::timestamptz,
-  '2026-10-12T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://www.adidas.com/f50', 'https://source.example.com/adidas-f50-elite', 'Adidas F50 Elite Limited is een voetbalschoenen met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-22T13:00:00.000Z'::timestamptz, '2026-09-25T13:00:00.000Z'::timestamptz, '2026-10-06T13:00:00.000Z'::timestamptz,
+  '2026-10-06T13:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'schoenen', 'football-boots',
   280, 280, 'EUR', 2800, NULL,
   72, 69, 60, 76, 54, 63,
   'MEDIUM'::priority_level,
@@ -3572,7 +3687,7 @@ INSERT INTO releases (
   'EXTREME', 'Estimated net ROI 1.2% after stockx fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
   54, 78, 17, 60, 70, 'IGNORE',
   70, 60, 71,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Adidas","type":"online","url":"https://official.example.com/adidas-f50-elite","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET"},{"name":"Adidas Confirmed","type":"online","url":"https://www.adidas.com","country":"BE"},{"name":"Pro-Direct","type":"online","url":"https://www.prodirectsoccer.com","country":"GB"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3580,6 +3695,101 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
+  price_min, price_max, currency, stock_estimate, capacity_estimate,
+  hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
+  priority_level, source_adapter_id,
+  tcg_name, set_name, product_type_tcg, card_rarity, sealed_product, msrp, market_price,
+  estimated_resale_low, estimated_resale_mid, estimated_resale_high,
+  expected_profit_low, expected_profit_mid, expected_profit_high,
+  expected_roi_low, expected_roi_mid, expected_roi_high,
+  resale_confidence_score, market_liquidity_score, demand_pressure_score, resale_risk_level, resale_explanation,
+  opportunity_score, scarcity_score, resale_potential, risk_score, action_urgency, opportunity_action,
+  popularity_score, momentum_score, volatility_score,
+  buy_locations, hype_reason, sale_type, source_name, source_checked_at
+) SELECT
+  'Adidas Predator Elite ''Energy Citrus''', 'predator-elite-citrus',
+  (SELECT id FROM release_categories WHERE slug = 'football-boots'),
+  (SELECT id FROM brands WHERE slug = 'adidas'),
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  'product'::release_type, 'announced'::release_status,
+  'https://www.adidas.com/predator', 'https://source.example.com/predator-elite-citrus', 'Adidas Predator Elite ''Energy Citrus'' is een voetbalschoenen met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-24T07:00:00.000Z'::timestamptz, '2026-09-27T07:00:00.000Z'::timestamptz, '2026-10-08T07:00:00.000Z'::timestamptz,
+  '2026-10-08T07:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'schoenen', 'football-boots',
+  260, 260, 'EUR', 3200, NULL,
+  76, 73, 63, 80, 57, 64,
+  'HIGH'::priority_level,
+  (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
+  NULL, NULL, NULL, NULL, NULL,
+  260, 355,
+  318, 355, 399,
+  58, 95, 139,
+  22.4, 36.5, 53.5,
+  26, 66, 76,
+  'EXTREME', 'Estimated net ROI 14.1% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
+  58, 75, 21, 60, 75, 'WATCH',
+  75, 77, 55,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET"},{"name":"Adidas Confirmed","type":"online","url":"https://www.adidas.com","country":"BE"},{"name":"Pro-Direct","type":"online","url":"https://www.prodirectsoccer.com","country":"GB"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO releases (
+  title, slug, category_id, brand_id, artist_id, league_id, venue_id, country_id, city_id,
+  release_type, status, official_url, source_url, description,
+  announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
+  drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
+  price_min, price_max, currency, stock_estimate, capacity_estimate,
+  hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
+  priority_level, source_adapter_id,
+  tcg_name, set_name, product_type_tcg, card_rarity, sealed_product, msrp, market_price,
+  estimated_resale_low, estimated_resale_mid, estimated_resale_high,
+  expected_profit_low, expected_profit_mid, expected_profit_high,
+  expected_roi_low, expected_roi_mid, expected_roi_high,
+  resale_confidence_score, market_liquidity_score, demand_pressure_score, resale_risk_level, resale_explanation,
+  opportunity_score, scarcity_score, resale_potential, risk_score, action_urgency, opportunity_action,
+  popularity_score, momentum_score, volatility_score,
+  buy_locations, hype_reason, sale_type, source_name, source_checked_at
+) SELECT
+  'Nike Mercurial Vapor 16 SE — Pro Direct', 'mercurial-vapor-16-se',
+  (SELECT id FROM release_categories WHERE slug = 'football-boots'),
+  (SELECT id FROM brands WHERE slug = 'nike'),
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  'product'::release_type, 'announced'::release_status,
+  'https://www.prodirectsoccer.com', 'https://source.example.com/mercurial-vapor-16-se', 'Nike Mercurial Vapor 16 SE — Pro Direct is een voetbalschoenen met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-26T08:00:00.000Z'::timestamptz, '2026-09-29T08:00:00.000Z'::timestamptz, '2026-10-10T08:00:00.000Z'::timestamptz,
+  '2026-10-10T08:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'schoenen', 'football-boots',
+  235, 235, 'EUR', 2500, NULL,
+  70, 68, 59, 75, 53, 63,
+  'MEDIUM'::priority_level,
+  (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
+  NULL, NULL, NULL, NULL, NULL,
+  235, 305,
+  273, 305, 343,
+  38, 70, 108,
+  16.3, 29.8, 45.9,
+  41, 67, 71,
+  'HIGH', 'Estimated net ROI 7.5% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
+  57, 81, 19, 50, 72, 'WATCH',
+  67, 77, 44,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET"},{"name":"Adidas Confirmed","type":"online","url":"https://www.adidas.com","country":"BE"},{"name":"Pro-Direct","type":"online","url":"https://www.prodirectsoccer.com","country":"GB"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO releases (
+  title, slug, category_id, brand_id, artist_id, league_id, venue_id, country_id, city_id,
+  release_type, status, official_url, source_url, description,
+  announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
+  drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3593,7 +3803,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'New Balance 550 x Aime Leon Dore', 'nb550-ald',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'collabs'),
   (SELECT id FROM brands WHERE slug = 'new-balance'),
   NULL,
   NULL,
@@ -3601,9 +3811,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/nb550-ald', 'https://source.example.com/nb550-ald', 'New Balance 550 x Aime Leon Dore is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-09-30T07:00:00.000Z'::timestamptz, '2026-10-03T07:00:00.000Z'::timestamptz, '2026-10-14T07:00:00.000Z'::timestamptz,
-  '2026-10-14T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://official.example.com/nb550-ald', 'https://source.example.com/nb550-ald', 'New Balance 550 x Aime Leon Dore is een collabs met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-28T13:00:00.000Z'::timestamptz, '2026-10-01T13:00:00.000Z'::timestamptz, '2026-10-12T13:00:00.000Z'::timestamptz,
+  '2026-10-12T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'fashion-drops',
   140, 140, 'EUR', 4500, NULL,
   80, 77, 67, 85, 60, 65,
   'HIGH'::priority_level,
@@ -3613,11 +3824,11 @@ INSERT INTO releases (
   238, 265, 298,
   98, 125, 158,
   69.7, 89.3, 112.8,
-  26, 64, 81,
-  'EXTREME', 'Estimated net ROI 55.5% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
-  62, 68, 33, 60, 81, 'HIGH PRIORITY',
-  77, 88, 46,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"New Balance","type":"online","url":"https://official.example.com/nb550-ald","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  37, 64, 81,
+  'HIGH', 'Estimated net ROI 55.5% after stockx fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
+  62, 68, 33, 50, 81, 'HIGH PRIORITY',
+  79, 89, 56,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/nb550-ald","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3625,6 +3836,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3647,8 +3859,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/air-max-1-og-red', 'https://source.example.com/air-max-1-og-red', 'Nike Air Max 1 OG Red is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-02T08:00:00.000Z'::timestamptz, '2026-10-05T08:00:00.000Z'::timestamptz, '2026-10-16T08:00:00.000Z'::timestamptz,
-  '2026-10-16T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-09-30T07:00:00.000Z'::timestamptz, '2026-10-03T07:00:00.000Z'::timestamptz, '2026-10-14T07:00:00.000Z'::timestamptz,
+  '2026-10-14T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'collabs',
   160, 160, 'EUR', 12000, NULL,
   68, 65, 57, 72, 51, 62,
   'MEDIUM'::priority_level,
@@ -3658,11 +3871,11 @@ INSERT INTO releases (
   175, 195, 219,
   15, 35, 59,
   9.2, 21.9, 37,
-  41, 55, 68,
-  'HIGH', 'Estimated net ROI -2.4% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
-  48, 62, 14, 60, 68, 'IGNORE',
-  66, 63, 55,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/air-max-1-og-red","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  34, 55, 68,
+  'EXTREME', 'Estimated net ROI -2.4% after stockx fees (EUR). Confidence 34% from 23% estimate spread and data freshness. (Estimated)',
+  48, 62, 14, 70, 67, 'IGNORE',
+  67, 59, 54,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/air-max-1-og-red","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3670,6 +3883,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3692,8 +3906,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/yeezy-slide-slate', 'https://source.example.com/yeezy-slide-slate', 'Yeezy Slide Slate Grey Restock is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-04T13:00:00.000Z'::timestamptz, '2026-10-07T13:00:00.000Z'::timestamptz, '2026-10-18T13:00:00.000Z'::timestamptz,
-  '2026-10-18T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-02T08:00:00.000Z'::timestamptz, '2026-10-05T08:00:00.000Z'::timestamptz, '2026-10-16T08:00:00.000Z'::timestamptz,
+  '2026-10-16T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'limited-sneakers',
   70, 70, 'EUR', 120000, NULL,
   55, 52, 46, 58, 41, 59,
   'LOW'::priority_level,
@@ -3703,11 +3918,11 @@ INSERT INTO releases (
   70, 78, 88,
   0, 8, 18,
   -0.1, 11.4, 25.3,
-  37, 25, 55,
-  'HIGH', 'Estimated net ROI -23.6% after stockx fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
-  37, 56, 4, 60, 58, 'IGNORE',
-  55, 60, 37,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Adidas","type":"online","url":"https://official.example.com/yeezy-slide-slate","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  30, 25, 55,
+  'EXTREME', 'Estimated net ROI -23.6% after stockx fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
+  37, 56, 4, 70, 58, 'IGNORE',
+  52, 60, 77,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Adidas","type":"online","url":"https://official.example.com/yeezy-slide-slate","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3715,6 +3930,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3737,8 +3953,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/sb-dunk-jpack-chicago', 'https://source.example.com/sb-dunk-jpack-chicago', 'Nike SB Dunk Low Pro J-Pack Chicago is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-06T07:00:00.000Z'::timestamptz, '2026-10-09T07:00:00.000Z'::timestamptz, '2026-10-20T07:00:00.000Z'::timestamptz,
-  '2026-10-20T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-04T13:00:00.000Z'::timestamptz, '2026-10-07T13:00:00.000Z'::timestamptz, '2026-10-18T13:00:00.000Z'::timestamptz,
+  '2026-10-18T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'limited-sneakers',
   115, 115, 'EUR', 7000, NULL,
   76, 73, 63, 80, 57, 64,
   'HIGH'::priority_level,
@@ -3748,11 +3965,11 @@ INSERT INTO releases (
   188, 210, 236,
   73, 95, 121,
   63.7, 82.6, 105.3,
-  34, 61, 76,
-  'EXTREME', 'Estimated net ROI 47.3% after stockx fees (EUR). Confidence 34% from 23% estimate spread and data freshness. (Estimated)',
-  60, 66, 30, 60, 79, 'WATCH',
-  74, 93, 44,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/sb-dunk-jpack-chicago","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  26, 61, 76,
+  'EXTREME', 'Estimated net ROI 47.3% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
+  56, 66, 30, 60, 72, 'WATCH',
+  75, 58, 53,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/sb-dunk-jpack-chicago","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3760,6 +3977,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3773,7 +3991,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'Salomon XT-6 Gorpcore Drop', 'salomon-xt6-drop',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'running'),
   (SELECT id FROM brands WHERE slug = 'salomon'),
   NULL,
   NULL,
@@ -3781,9 +3999,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/salomon-xt6-drop', 'https://source.example.com/salomon-xt6-drop', 'Salomon XT-6 Gorpcore Drop is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-08T08:00:00.000Z'::timestamptz, '2026-10-11T08:00:00.000Z'::timestamptz, '2026-10-22T08:00:00.000Z'::timestamptz,
-  '2026-10-22T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://official.example.com/salomon-xt6-drop', 'https://source.example.com/salomon-xt6-drop', 'Salomon XT-6 Gorpcore Drop is een running met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-06T07:00:00.000Z'::timestamptz, '2026-10-09T07:00:00.000Z'::timestamptz, '2026-10-20T07:00:00.000Z'::timestamptz,
+  '2026-10-20T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'running',
   180, 180, 'EUR', 9000, NULL,
   64, 61, 52, 66, 48, 61,
   'LOW'::priority_level,
@@ -3793,11 +4012,11 @@ INSERT INTO releases (
   184, 205, 231,
   4, 25, 51,
   2.1, 13.9, 28.1,
-  30, 59, 63,
-  'EXTREME', 'Estimated net ROI -8.4% after stockx fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
-  46, 60, 12, 70, 62, 'IGNORE',
-  62, 55, 57,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Salomon","type":"online","url":"https://official.example.com/salomon-xt6-drop","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  41, 59, 63,
+  'HIGH', 'Estimated net ROI -8.4% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
+  48, 60, 12, 60, 67, 'IGNORE',
+  63, 76, 56,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Salomon","type":"online","url":"https://official.example.com/salomon-xt6-drop","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3805,6 +4024,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3818,7 +4038,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'Asics Gel-Kayano 14 Silver', 'asics-kayano-14-silver',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'running'),
   (SELECT id FROM brands WHERE slug = 'asics'),
   NULL,
   NULL,
@@ -3826,9 +4046,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/asics-kayano-14-silver', 'https://source.example.com/asics-kayano-14-silver', 'Asics Gel-Kayano 14 Silver is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-10T13:00:00.000Z'::timestamptz, '2026-10-13T13:00:00.000Z'::timestamptz, '2026-10-24T13:00:00.000Z'::timestamptz,
-  '2026-10-24T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://official.example.com/asics-kayano-14-silver', 'https://source.example.com/asics-kayano-14-silver', 'Asics Gel-Kayano 14 Silver is een running met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-08T08:00:00.000Z'::timestamptz, '2026-10-11T08:00:00.000Z'::timestamptz, '2026-10-22T08:00:00.000Z'::timestamptz,
+  '2026-10-22T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'running',
   150, 150, 'EUR', 15000, NULL,
   58, 55, 47, 60, 44, 60,
   'LOW'::priority_level,
@@ -3838,11 +4059,11 @@ INSERT INTO releases (
   151, 168, 189,
   1, 18, 39,
   0.4, 12, 25.9,
-  26, 51, 57,
-  'EXTREME', 'Estimated net ROI -11.7% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
-  42, 57, 10, 70, 59, 'IGNORE',
-  55, 59, 41,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Asics","type":"online","url":"https://official.example.com/asics-kayano-14-silver","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  37, 51, 57,
+  'HIGH', 'Estimated net ROI -11.7% after stockx fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
+  41, 57, 10, 60, 57, 'IGNORE',
+  56, 47, 37,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Asics","type":"online","url":"https://official.example.com/asics-kayano-14-silver","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3850,6 +4071,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3872,8 +4094,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/af1-low-luxe', 'https://source.example.com/af1-low-luxe', 'Nike Air Force 1 Low Luxe is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-12T07:00:00.000Z'::timestamptz, '2026-10-15T07:00:00.000Z'::timestamptz, '2026-10-26T07:00:00.000Z'::timestamptz,
-  '2026-10-26T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-10T13:00:00.000Z'::timestamptz, '2026-10-13T13:00:00.000Z'::timestamptz, '2026-10-24T13:00:00.000Z'::timestamptz,
+  '2026-10-24T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'limited-sneakers',
   130, 130, 'EUR', 25000, NULL,
   52, 50, 43, 55, 39, 58,
   'LOW'::priority_level,
@@ -3883,11 +4106,11 @@ INSERT INTO releases (
   127, 142, 160,
   -3, 12, 30,
   -2.1, 9.2, 22.8,
-  41, 39, 52,
-  'HIGH', 'Estimated net ROI -15.7% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
-  38, 55, 8, 60, 56, 'IGNORE',
-  52, 56, 70,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/af1-low-luxe","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  34, 39, 52,
+  'EXTREME', 'Estimated net ROI -15.7% after stockx fees (EUR). Confidence 34% from 23% estimate spread and data freshness. (Estimated)',
+  37, 55, 8, 70, 55, 'IGNORE',
+  52, 51, 63,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/af1-low-luxe","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3895,6 +4118,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3917,8 +4141,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/jordan-4-military-blue', 'https://source.example.com/jordan-4-military-blue', 'Jordan 4 Military Blue is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-14T08:00:00.000Z'::timestamptz, '2026-10-17T08:00:00.000Z'::timestamptz, '2026-10-28T08:00:00.000Z'::timestamptz,
-  '2026-10-28T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-12T07:00:00.000Z'::timestamptz, '2026-10-15T07:00:00.000Z'::timestamptz, '2026-10-26T07:00:00.000Z'::timestamptz,
+  '2026-10-26T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'limited-sneakers',
   210, 210, 'EUR', 11000, NULL,
   82, 79, 68, 86, 62, 66,
   'HIGH'::priority_level,
@@ -3928,11 +4153,11 @@ INSERT INTO releases (
   255, 285, 320,
   45, 75, 110,
   21.6, 35.7, 52.6,
-  37, 56, 82,
-  'HIGH', 'Estimated net ROI 12% after stockx fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
-  58, 69, 19, 50, 82, 'WATCH',
-  81, 92, 30,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Jordan","type":"online","url":"https://official.example.com/jordan-4-military-blue","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  30, 56, 82,
+  'EXTREME', 'Estimated net ROI 12% after stockx fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
+  59, 69, 19, 60, 84, 'WATCH',
+  80, 100, 63,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Jordan","type":"online","url":"https://official.example.com/jordan-4-military-blue","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3940,6 +4165,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3962,8 +4188,9 @@ INSERT INTO releases (
   NULL,
   'product'::release_type, 'announced'::release_status,
   'https://official.example.com/samba-og-white', 'https://source.example.com/samba-og-white', 'Adidas Samba OG White is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-17T13:00:00.000Z'::timestamptz, '2026-10-20T13:00:00.000Z'::timestamptz, '2026-10-31T13:00:00.000Z'::timestamptz,
-  '2026-10-31T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-14T08:00:00.000Z'::timestamptz, '2026-10-17T08:00:00.000Z'::timestamptz, '2026-10-28T08:00:00.000Z'::timestamptz,
+  '2026-10-28T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'limited-sneakers',
   120, 120, 'EUR', 40000, NULL,
   48, 46, 39, 50, 36, 57,
   'LOW'::priority_level,
@@ -3972,12 +4199,12 @@ INSERT INTO releases (
   120, 128,
   115, 128, 144,
   -5, 8, 24,
-  -4.4, 6.7, 19.9,
-  34, 25, 48,
-  'EXTREME', 'Estimated net ROI -18.9% after stockx fees (EUR). Confidence 34% from 23% estimate spread and data freshness. (Estimated)',
-  33, 53, 4, 70, 52, 'IGNORE',
-  46, 53, 30,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Adidas","type":"online","url":"https://official.example.com/samba-og-white","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  -4.4, 6.7, 20,
+  26, 25, 48,
+  'EXTREME', 'Estimated net ROI -18.9% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
+  34, 53, 4, 70, 52, 'IGNORE',
+  47, 56, 39,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Adidas","type":"online","url":"https://official.example.com/samba-og-white","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -3985,6 +4212,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -3998,7 +4226,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'Nike Zoom Vomero 5 Photon Dust', 'vomero-5-photon',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'running'),
   (SELECT id FROM brands WHERE slug = 'nike'),
   NULL,
   NULL,
@@ -4006,9 +4234,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/vomero-5-photon', 'https://source.example.com/vomero-5-photon', 'Nike Zoom Vomero 5 Photon Dust is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-19T07:00:00.000Z'::timestamptz, '2026-10-22T07:00:00.000Z'::timestamptz, '2026-11-02T07:00:00.000Z'::timestamptz,
-  '2026-11-02T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://official.example.com/vomero-5-photon', 'https://source.example.com/vomero-5-photon', 'Nike Zoom Vomero 5 Photon Dust is een running met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-16T13:00:00.000Z'::timestamptz, '2026-10-19T13:00:00.000Z'::timestamptz, '2026-10-30T13:00:00.000Z'::timestamptz,
+  '2026-10-30T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'running',
   170, 170, 'EUR', 18000, NULL,
   66, 63, 54, 68, 50, 62,
   'MEDIUM'::priority_level,
@@ -4017,12 +4246,12 @@ INSERT INTO releases (
   170, 198,
   177, 198, 223,
   7, 28, 53,
-  4.4, 16.5, 31,
-  30, 48, 65,
-  'EXTREME', 'Estimated net ROI -6.6% after stockx fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
-  47, 61, 11, 70, 68, 'IGNORE',
-  66, 76, 69,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/vomero-5-photon","country":"BE"}]'::jsonb, NULL, 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  4.3, 16.5, 31,
+  41, 48, 65,
+  'HIGH', 'Estimated net ROI -6.6% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
+  46, 61, 11, 60, 65, 'IGNORE',
+  63, 63, 77,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/vomero-5-photon","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4030,6 +4259,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4052,8 +4282,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/pokemon-charizard-collection', 'https://source.example.com/pokemon-charizard-collection', 'Pokémon Mega Evolution Charizard Collection is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-21T08:00:00.000Z'::timestamptz, '2026-10-24T08:00:00.000Z'::timestamptz, '2026-11-04T08:00:00.000Z'::timestamptz,
-  '2026-11-04T08:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-18T07:00:00.000Z'::timestamptz, '2026-10-21T07:00:00.000Z'::timestamptz, '2026-11-01T07:00:00.000Z'::timestamptz,
+  '2026-11-01T07:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'kaarten', 'pokemon',
   49, 49, 'EUR', 8000, NULL,
   88, 86, 71, 90, 66, 67,
   'EXTREME'::priority_level,
@@ -4062,12 +4293,12 @@ INSERT INTO releases (
   49, 95,
   85, 95, 107,
   36, 46, 58,
-  73.8, 93.9, 118,
-  26, 77, 88,
-  'EXTREME', 'Estimated net ROI 61.5% after tcgplayer fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
-  66, 71, 37, 60, 81, 'MUST WATCH',
-  87, 74, 42,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, 'Zeldzame sealed productie — historisch 2×–4× binnen 30 dagen na release.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  73.7, 93.9, 118.1,
+  37, 77, 88,
+  'HIGH', 'Estimated net ROI 61.5% after tcgplayer fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
+  66, 71, 37, 50, 81, 'MUST WATCH',
+  87, 74, 69,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, 'Zeldzame sealed productie — historisch 2×–4× binnen 30 dagen na release.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4075,6 +4306,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4097,8 +4329,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/pokemon-151-upc', 'https://source.example.com/pokemon-151-upc', 'Pokémon 151 Ultra Premium Collection is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-23T13:00:00.000Z'::timestamptz, '2026-10-26T13:00:00.000Z'::timestamptz, '2026-11-06T13:00:00.000Z'::timestamptz,
-  '2026-11-06T13:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'preorder',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-20T08:00:00.000Z'::timestamptz, '2026-10-23T08:00:00.000Z'::timestamptz, '2026-11-03T08:00:00.000Z'::timestamptz,
+  '2026-11-03T08:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'preorder',
+  'kaarten', 'pokemon',
   120, 120, 'EUR', 5000, NULL,
   90, 88, 73, 92, 68, 68,
   'EXTREME'::priority_level,
@@ -4108,11 +4341,11 @@ INSERT INTO releases (
   188, 210, 236,
   68, 90, 116,
   56.8, 75, 96.9,
-  41, 77, 90,
-  'HIGH', 'Estimated net ROI 49.8% after tcgplayer fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
-  67, 71, 34, 50, 83, 'MUST WATCH',
-  86, 78, 90,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, 'Zeldzame sealed productie — historisch 2×–4× binnen 30 dagen na release.', 'preorder', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  33, 77, 90,
+  'EXTREME', 'Estimated net ROI 49.8% after tcgplayer fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
+  65, 71, 34, 60, 81, 'MUST WATCH',
+  88, 65, 63,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, 'Zeldzame sealed productie — historisch 2×–4× binnen 30 dagen na release.', 'preorder', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4120,6 +4353,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4142,8 +4376,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/one-piece-op12-box', 'https://source.example.com/one-piece-op12-box', 'One Piece OP-12 Booster Box is een sealed One Piece-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-25T07:00:00.000Z'::timestamptz, '2026-10-28T07:00:00.000Z'::timestamptz, '2026-11-08T07:00:00.000Z'::timestamptz,
-  '2026-11-08T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-22T13:00:00.000Z'::timestamptz, '2026-10-25T13:00:00.000Z'::timestamptz, '2026-11-05T13:00:00.000Z'::timestamptz,
+  '2026-11-05T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'one-piece',
   110, 110, 'EUR', 6000, NULL,
   84, 82, 68, 86, 63, 66,
   'HIGH'::priority_level,
@@ -4153,11 +4388,11 @@ INSERT INTO releases (
   148, 165, 186,
   38, 55, 76,
   34.4, 50, 68.7,
-  37, 75, 84,
-  'HIGH', 'Estimated net ROI 27.6% after tcgplayer fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
-  62, 69, 27, 50, 80, 'HIGH PRIORITY',
-  80, 81, 58,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  30, 75, 84,
+  'EXTREME', 'Estimated net ROI 27.6% after tcgplayer fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
+  62, 69, 27, 60, 79, 'HIGH PRIORITY',
+  82, 76, 37,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4165,6 +4400,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4187,8 +4423,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/lorcana-ch8-collector', 'https://source.example.com/lorcana-ch8-collector', 'Lorcana Chapter 8 Collector Set is een sealed Lorcana-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-27T08:00:00.000Z'::timestamptz, '2026-10-30T08:00:00.000Z'::timestamptz, '2026-11-10T08:00:00.000Z'::timestamptz,
-  '2026-11-10T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-24T07:00:00.000Z'::timestamptz, '2026-10-27T07:00:00.000Z'::timestamptz, '2026-11-07T07:00:00.000Z'::timestamptz,
+  '2026-11-07T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'lorcana',
   55, 55, 'EUR', 7000, NULL,
   72, 70, 59, 74, 54, 63,
   'MEDIUM'::priority_level,
@@ -4198,11 +4435,11 @@ INSERT INTO releases (
   79, 88, 99,
   24, 33, 44,
   43.3, 60, 80,
-  33, 71, 72,
-  'EXTREME', 'Estimated net ROI 32.7% after tcgplayer fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
-  56, 63, 28, 60, 70, 'WATCH',
-  69, 69, 37,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  26, 71, 72,
+  'EXTREME', 'Estimated net ROI 32.7% after tcgplayer fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
+  56, 63, 28, 60, 71, 'WATCH',
+  72, 70, 78,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4210,6 +4447,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4232,8 +4470,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/magic-secret-lair-doctor-who', 'https://source.example.com/magic-secret-lair-doctor-who', 'Magic Secret Lair — Doctor Who is een sealed Magic-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-29T13:00:00.000Z'::timestamptz, '2026-11-01T13:00:00.000Z'::timestamptz, '2026-11-12T13:00:00.000Z'::timestamptz,
-  '2026-11-12T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-26T08:00:00.000Z'::timestamptz, '2026-10-29T08:00:00.000Z'::timestamptz, '2026-11-09T08:00:00.000Z'::timestamptz,
+  '2026-11-09T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'magic',
   38, 38, 'EUR', 10000, NULL,
   68, 66, 55, 70, 51, 62,
   'MEDIUM'::priority_level,
@@ -4242,12 +4481,12 @@ INSERT INTO releases (
   38, 62,
   56, 62, 70,
   18, 24, 32,
-  46.2, 63.2, 83.5,
-  30, 70, 68,
-  'EXTREME', 'Estimated net ROI 32.2% after tcgplayer fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
-  55, 62, 27, 60, 69, 'IGNORE',
-  67, 74, 75,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  46.2, 63.2, 83.6,
+  41, 70, 68,
+  'HIGH', 'Estimated net ROI 32.2% after tcgplayer fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
+  53, 62, 27, 50, 65, 'IGNORE',
+  67, 54, 78,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4255,6 +4494,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4277,8 +4517,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/yugioh-quarter-century', 'https://source.example.com/yugioh-quarter-century', 'Yu-Gi-Oh Quarter Century Bonanza Box is een sealed Yu-Gi-Oh-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-10-31T07:00:00.000Z'::timestamptz, '2026-11-03T07:00:00.000Z'::timestamptz, '2026-11-14T07:00:00.000Z'::timestamptz,
-  '2026-11-14T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-28T13:00:00.000Z'::timestamptz, '2026-10-31T13:00:00.000Z'::timestamptz, '2026-11-11T13:00:00.000Z'::timestamptz,
+  '2026-11-11T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'yugioh',
   75, 75, 'EUR', 5500, NULL,
   70, 68, 57, 72, 53, 63,
   'MEDIUM'::priority_level,
@@ -4288,11 +4529,11 @@ INSERT INTO releases (
   94, 105, 118,
   19, 30, 43,
   25.4, 40, 57.5,
-  26, 70, 70,
-  'EXTREME', 'Estimated net ROI 17.2% after tcgplayer fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
-  53, 62, 22, 60, 68, 'IGNORE',
-  67, 65, 43,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  37, 70, 70,
+  'HIGH', 'Estimated net ROI 17.2% after tcgplayer fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
+  53, 62, 22, 50, 67, 'IGNORE',
+  68, 57, 34,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4300,6 +4541,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4322,8 +4564,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/topps-chrome-2026-hobby', 'https://source.example.com/topps-chrome-2026-hobby', 'Topps Chrome 2026 Hobby Box is een sealed Sports Cards-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-02T08:00:00.000Z'::timestamptz, '2026-11-05T08:00:00.000Z'::timestamptz, '2026-11-16T08:00:00.000Z'::timestamptz,
-  '2026-11-16T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-10-30T07:00:00.000Z'::timestamptz, '2026-11-02T07:00:00.000Z'::timestamptz, '2026-11-13T07:00:00.000Z'::timestamptz,
+  '2026-11-13T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'sports-cards',
   230, 230, 'EUR', 3000, NULL,
   65, 63, 52, 66, 49, 61,
   'LOW'::priority_level,
@@ -4333,11 +4576,11 @@ INSERT INTO releases (
   246, 275, 309,
   16, 45, 79,
   7.1, 19.6, 34.5,
-  41, 68, 64,
-  'HIGH', 'Estimated net ROI 2.9% after tcgplayer fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
-  55, 77, 17, 50, 69, 'IGNORE',
-  65, 87, 57,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  33, 68, 64,
+  'EXTREME', 'Estimated net ROI 2.9% after tcgplayer fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
+  56, 77, 17, 60, 70, 'WATCH',
+  65, 91, 60,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4345,6 +4588,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4367,8 +4611,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/pokemon-prismatic-etb', 'https://source.example.com/pokemon-prismatic-etb', 'Pokémon Prismatic ETB is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-05T13:00:00.000Z'::timestamptz, '2026-11-08T13:00:00.000Z'::timestamptz, '2026-11-19T13:00:00.000Z'::timestamptz,
-  '2026-11-19T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-01T08:00:00.000Z'::timestamptz, '2026-11-04T08:00:00.000Z'::timestamptz, '2026-11-15T08:00:00.000Z'::timestamptz,
+  '2026-11-15T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'pokemon',
   52, 52, 'EUR', 12000, NULL,
   80, 78, 65, 82, 60, 65,
   'HIGH'::priority_level,
@@ -4378,11 +4623,11 @@ INSERT INTO releases (
   70, 78, 88,
   18, 26, 36,
   34.4, 50, 68.8,
-  37, 74, 80,
-  'HIGH', 'Estimated net ROI 23.6% after tcgplayer fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
-  60, 67, 25, 50, 77, 'WATCH',
-  77, 79, 41,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  30, 74, 80,
+  'EXTREME', 'Estimated net ROI 23.6% after tcgplayer fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
+  60, 67, 25, 60, 77, 'WATCH',
+  80, 79, 32,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4390,6 +4635,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4412,8 +4658,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/pokemon-paldean-fates-tin', 'https://source.example.com/pokemon-paldean-fates-tin', 'Pokémon Paldean Fates Tin is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-07T07:00:00.000Z'::timestamptz, '2026-11-10T07:00:00.000Z'::timestamptz, '2026-11-21T07:00:00.000Z'::timestamptz,
-  '2026-11-21T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-03T13:00:00.000Z'::timestamptz, '2026-11-06T13:00:00.000Z'::timestamptz, '2026-11-17T13:00:00.000Z'::timestamptz,
+  '2026-11-17T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'pokemon',
   28, 28, 'EUR', 20000, NULL,
   58, 56, 47, 60, 44, 60,
   'LOW'::priority_level,
@@ -4423,11 +4670,11 @@ INSERT INTO releases (
   34, 38, 43,
   6, 10, 15,
   21.6, 35.7, 52.7,
-  33, 66, 58,
-  'EXTREME', 'Estimated net ROI 4.5% after tcgplayer fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
-  48, 57, 18, 60, 63, 'IGNORE',
-  56, 78, 54,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  26, 66, 58,
+  'EXTREME', 'Estimated net ROI 4.5% after tcgplayer fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
+  47, 57, 18, 60, 60, 'IGNORE',
+  57, 65, 47,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4435,6 +4682,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4457,8 +4705,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/one-piece-starter-ex', 'https://source.example.com/one-piece-starter-ex', 'One Piece Starter Deck EX is een sealed One Piece-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-09T08:00:00.000Z'::timestamptz, '2026-11-12T08:00:00.000Z'::timestamptz, '2026-11-23T08:00:00.000Z'::timestamptz,
-  '2026-11-23T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-05T07:00:00.000Z'::timestamptz, '2026-11-08T07:00:00.000Z'::timestamptz, '2026-11-19T07:00:00.000Z'::timestamptz,
+  '2026-11-19T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'one-piece',
   18, 18, 'EUR', 25000, NULL,
   52, 50, 43, 54, 39, 58,
   'LOW'::priority_level,
@@ -4467,12 +4716,12 @@ INSERT INTO releases (
   18, 24,
   21, 24, 27,
   3, 6, 9,
-  19.4, 33.3, 50,
-  30, 64, 52,
-  'EXTREME', 'Estimated net ROI -5.6% after tcgplayer fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
-  43, 54, 14, 70, 56, 'IGNORE',
-  51, 59, 70,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  19.4, 33.3, 50.1,
+  41, 64, 52,
+  'HIGH', 'Estimated net ROI -5.6% after tcgplayer fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
+  44, 54, 14, 60, 58, 'IGNORE',
+  52, 70, 37,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4480,6 +4729,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4502,8 +4752,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/lorcana-illumineers-quest', 'https://source.example.com/lorcana-illumineers-quest', 'Lorcana Illumineer''s Quest is een sealed Lorcana-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-11T13:00:00.000Z'::timestamptz, '2026-11-14T13:00:00.000Z'::timestamptz, '2026-11-25T13:00:00.000Z'::timestamptz,
-  '2026-11-25T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-07T08:00:00.000Z'::timestamptz, '2026-11-10T08:00:00.000Z'::timestamptz, '2026-11-21T08:00:00.000Z'::timestamptz,
+  '2026-11-21T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'lorcana',
   45, 45, 'EUR', 9000, NULL,
   60, 58, 49, 62, 45, 60,
   'LOW'::priority_level,
@@ -4512,12 +4763,12 @@ INSERT INTO releases (
   45, 58,
   52, 58, 65,
   7, 13, 20,
-  15.5, 28.9, 45,
-  26, 67, 60,
-  'EXTREME', 'Estimated net ROI 3.9% after tcgplayer fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
-  48, 58, 18, 60, 63, 'IGNORE',
-  60, 71, 77,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  15.4, 28.9, 45.1,
+  37, 67, 60,
+  'HIGH', 'Estimated net ROI 3.9% after tcgplayer fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
+  46, 58, 18, 50, 59, 'IGNORE',
+  60, 51, 57,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4525,6 +4776,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4547,8 +4799,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/magic-mh3-box', 'https://source.example.com/magic-mh3-box', 'Magic Modern Horizons 3 Box is een sealed Magic-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-13T07:00:00.000Z'::timestamptz, '2026-11-16T07:00:00.000Z'::timestamptz, '2026-11-27T07:00:00.000Z'::timestamptz,
-  '2026-11-27T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-09T13:00:00.000Z'::timestamptz, '2026-11-12T13:00:00.000Z'::timestamptz, '2026-11-23T13:00:00.000Z'::timestamptz,
+  '2026-11-23T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'magic',
   280, 280, 'EUR', 4000, NULL,
   78, 76, 63, 80, 59, 65,
   'HIGH'::priority_level,
@@ -4558,11 +4811,11 @@ INSERT INTO releases (
   304, 340, 383,
   24, 60, 103,
   8.7, 21.4, 36.7,
-  41, 73, 78,
-  'HIGH', 'Estimated net ROI 4.8% after tcgplayer fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
-  57, 68, 19, 50, 75, 'WATCH',
-  76, 73, 55,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  33, 73, 78,
+  'EXTREME', 'Estimated net ROI 4.8% after tcgplayer fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
+  56, 68, 19, 60, 72, 'WATCH',
+  75, 60, 30,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4570,6 +4823,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4592,8 +4846,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/pokemon-crown-zenith-etb', 'https://source.example.com/pokemon-crown-zenith-etb', 'Pokémon Crown Zenith ETB is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-15T08:00:00.000Z'::timestamptz, '2026-11-18T08:00:00.000Z'::timestamptz, '2026-11-29T08:00:00.000Z'::timestamptz,
-  '2026-11-29T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-11T07:00:00.000Z'::timestamptz, '2026-11-14T07:00:00.000Z'::timestamptz, '2026-11-25T07:00:00.000Z'::timestamptz,
+  '2026-11-25T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'pokemon',
   48, 48, 'EUR', 14000, NULL,
   66, 64, 54, 68, 50, 62,
   'MEDIUM'::priority_level,
@@ -4603,11 +4858,11 @@ INSERT INTO releases (
   64, 72, 81,
   16, 24, 33,
   34.3, 50, 68.8,
-  37, 69, 66,
-  'HIGH', 'Estimated net ROI 22.9% after tcgplayer fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
-  54, 61, 24, 50, 69, 'IGNORE',
-  66, 79, 54,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  30, 69, 66,
+  'EXTREME', 'Estimated net ROI 22.9% after tcgplayer fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
+  52, 61, 24, 60, 65, 'IGNORE',
+  66, 60, 49,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4615,6 +4870,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4637,8 +4893,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/yugioh-fire-kings-deck', 'https://source.example.com/yugioh-fire-kings-deck', 'Yu-Gi-Oh Structure Deck Fire Kings is een sealed Yu-Gi-Oh-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-17T13:00:00.000Z'::timestamptz, '2026-11-20T13:00:00.000Z'::timestamptz, '2026-12-01T13:00:00.000Z'::timestamptz,
-  '2026-12-01T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-13T08:00:00.000Z'::timestamptz, '2026-11-16T08:00:00.000Z'::timestamptz, '2026-11-27T08:00:00.000Z'::timestamptz,
+  '2026-11-27T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'kaarten', 'yugioh',
   14, 14, 'EUR', 30000, NULL,
   44, 42, 36, 46, 33, 56,
   'LOW'::priority_level,
@@ -4648,11 +4905,11 @@ INSERT INTO releases (
   16, 18, 20,
   2, 4, 6,
   15.1, 28.6, 44.7,
-  33, 61, 44,
-  'EXTREME', 'Estimated net ROI -16.1% after tcgplayer fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
-  37, 51, 10, 70, 48, 'IGNORE',
-  42, 46, 47,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  26, 61, 44,
+  'EXTREME', 'Estimated net ROI -16.1% after tcgplayer fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
+  36, 51, 10, 70, 47, 'IGNORE',
+  43, 42, 31,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4660,6 +4917,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4682,8 +4940,9 @@ INSERT INTO releases (
   NULL,
   'collectible'::release_type, 'announced'::release_status,
   'https://official.example.com/pokemon-surging-sparks-bundle', 'https://source.example.com/pokemon-surging-sparks-bundle', 'Pokémon Surging Sparks Booster Bundle is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-19T07:00:00.000Z'::timestamptz, '2026-11-22T07:00:00.000Z'::timestamptz, '2026-12-03T07:00:00.000Z'::timestamptz,
-  '2026-12-03T07:00:00.000Z'::timestamptz, false, 'Europe/Amsterdam', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-15T13:00:00.000Z'::timestamptz, '2026-11-18T13:00:00.000Z'::timestamptz, '2026-11-29T13:00:00.000Z'::timestamptz,
+  '2026-11-29T13:00:00.000Z'::timestamptz, false, 'Europe/Amsterdam', 'release',
+  'kaarten', 'pokemon',
   32, 32, 'EUR', 16000, NULL,
   62, 60, 51, 64, 47, 61,
   'MEDIUM'::priority_level,
@@ -4693,11 +4952,11 @@ INSERT INTO releases (
   39, 44, 50,
   7, 12, 18,
   23.1, 37.5, 54.8,
-  30, 67, 62,
-  'EXTREME', 'Estimated net ROI 7.8% after tcgplayer fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
-  49, 59, 19, 60, 64, 'IGNORE',
-  61, 69, 41,
-  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  41, 67, 62,
+  'HIGH', 'Estimated net ROI 7.8% after tcgplayer fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
+  50, 59, 19, 50, 65, 'IGNORE',
+  63, 73, 64,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4705,6 +4964,148 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
+  price_min, price_max, currency, stock_estimate, capacity_estimate,
+  hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
+  priority_level, source_adapter_id,
+  tcg_name, set_name, product_type_tcg, card_rarity, sealed_product, msrp, market_price,
+  estimated_resale_low, estimated_resale_mid, estimated_resale_high,
+  expected_profit_low, expected_profit_mid, expected_profit_high,
+  expected_roi_low, expected_roi_mid, expected_roi_high,
+  resale_confidence_score, market_liquidity_score, demand_pressure_score, resale_risk_level, resale_explanation,
+  opportunity_score, scarcity_score, resale_potential, risk_score, action_urgency, opportunity_action,
+  popularity_score, momentum_score, volatility_score,
+  buy_locations, hype_reason, sale_type, source_name, source_checked_at
+) SELECT
+  'Pokémon Journey Together ETB — Preorder', 'pokemon-journey-together-etb',
+  (SELECT id FROM release_categories WHERE slug = 'tcg-collectibles'),
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  'collectible'::release_type, 'announced'::release_status,
+  'https://official.example.com/pokemon-journey-together-etb', 'https://source.example.com/pokemon-journey-together-etb', 'Pokémon Journey Together ETB — Preorder is een sealed Pokémon-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-17T07:00:00.000Z'::timestamptz, '2026-11-20T07:00:00.000Z'::timestamptz, '2026-12-01T07:00:00.000Z'::timestamptz,
+  '2026-12-01T07:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'preorder',
+  'kaarten', 'pokemon',
+  54, 54, 'EUR', 9000, NULL,
+  82, 80, 67, 85, 62, 66,
+  'HIGH'::priority_level,
+  (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
+  'Pokémon', 'Journey Together', 'ETB', NULL, true,
+  54, 82,
+  73, 82, 92,
+  19, 28, 38,
+  36, 51.9, 70.9,
+  37, 75, 82,
+  'HIGH', 'Estimated net ROI 25.5% after tcgplayer fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
+  61, 68, 26, 50, 78, 'WATCH',
+  80, 76, 35,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'preorder', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO releases (
+  title, slug, category_id, brand_id, artist_id, league_id, venue_id, country_id, city_id,
+  release_type, status, official_url, source_url, description,
+  announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
+  drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
+  price_min, price_max, currency, stock_estimate, capacity_estimate,
+  hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
+  priority_level, source_adapter_id,
+  tcg_name, set_name, product_type_tcg, card_rarity, sealed_product, msrp, market_price,
+  estimated_resale_low, estimated_resale_mid, estimated_resale_high,
+  expected_profit_low, expected_profit_mid, expected_profit_high,
+  expected_roi_low, expected_roi_mid, expected_roi_high,
+  resale_confidence_score, market_liquidity_score, demand_pressure_score, resale_risk_level, resale_explanation,
+  opportunity_score, scarcity_score, resale_potential, risk_score, action_urgency, opportunity_action,
+  popularity_score, momentum_score, volatility_score,
+  buy_locations, hype_reason, sale_type, source_name, source_checked_at
+) SELECT
+  'One Piece OP-13 Booster Box — Preorder', 'one-piece-op13-preorder',
+  (SELECT id FROM release_categories WHERE slug = 'tcg-collectibles'),
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  'collectible'::release_type, 'announced'::release_status,
+  'https://official.example.com/one-piece-op13-preorder', 'https://source.example.com/one-piece-op13-preorder', 'One Piece OP-13 Booster Box — Preorder is een sealed One Piece-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-19T08:00:00.000Z'::timestamptz, '2026-11-22T08:00:00.000Z'::timestamptz, '2026-12-03T08:00:00.000Z'::timestamptz,
+  '2026-12-03T08:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'preorder',
+  'kaarten', 'one-piece',
+  115, 115, 'EUR', 5000, NULL,
+  86, 84, 70, 88, 65, 67,
+  'HIGH'::priority_level,
+  (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
+  'One Piece', 'OP-13', 'booster_box', NULL, true,
+  115, 175,
+  157, 175, 197,
+  42, 60, 82,
+  36.3, 52.2, 71.3,
+  33, 76, 86,
+  'EXTREME', 'Estimated net ROI 29.7% after tcgplayer fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
+  65, 70, 27, 60, 85, 'MUST WATCH',
+  85, 100, 56,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'preorder', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO releases (
+  title, slug, category_id, brand_id, artist_id, league_id, venue_id, country_id, city_id,
+  release_type, status, official_url, source_url, description,
+  announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
+  drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
+  price_min, price_max, currency, stock_estimate, capacity_estimate,
+  hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
+  priority_level, source_adapter_id,
+  tcg_name, set_name, product_type_tcg, card_rarity, sealed_product, msrp, market_price,
+  estimated_resale_low, estimated_resale_mid, estimated_resale_high,
+  expected_profit_low, expected_profit_mid, expected_profit_high,
+  expected_roi_low, expected_roi_mid, expected_roi_high,
+  resale_confidence_score, market_liquidity_score, demand_pressure_score, resale_risk_level, resale_explanation,
+  opportunity_score, scarcity_score, resale_potential, risk_score, action_urgency, opportunity_action,
+  popularity_score, momentum_score, volatility_score,
+  buy_locations, hype_reason, sale_type, source_name, source_checked_at
+) SELECT
+  'Lorcana Chapter 9 Starter Deck', 'lorcana-ch9-starter',
+  (SELECT id FROM release_categories WHERE slug = 'tcg-collectibles'),
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  'collectible'::release_type, 'announced'::release_status,
+  'https://official.example.com/lorcana-ch9-starter', 'https://source.example.com/lorcana-ch9-starter', 'Lorcana Chapter 9 Starter Deck is een sealed Lorcana-product met sterke collector-vraag. Preorders en winkelreleases zijn beperkt — snel uitverkocht bij officiële retailers.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-21T13:00:00.000Z'::timestamptz, '2026-11-24T13:00:00.000Z'::timestamptz, '2026-12-05T13:00:00.000Z'::timestamptz,
+  '2026-12-05T13:00:00.000Z'::timestamptz, true, 'Europe/Amsterdam', 'release',
+  'kaarten', 'lorcana',
+  22, 22, 'EUR', 14000, NULL,
+  58, 56, 49, 62, 44, 60,
+  'LOW'::priority_level,
+  (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
+  'Lorcana', 'Chapter 9', 'starter', NULL, true,
+  22, 32,
+  29, 32, 36,
+  7, 10, 14,
+  30.2, 45.5, 63.7,
+  30, 67, 59,
+  'EXTREME', 'Estimated net ROI 9.1% after tcgplayer fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
+  48, 58, 19, 60, 63, 'IGNORE',
+  57, 69, 80,
+  '[{"name":"Pokémon Center","type":"online","url":"https://www.pokemoncenter.com","country":"NL","note":"15:00 CET"},{"name":"bol.com","type":"online","url":"https://www.bol.com","country":"BE"},{"name":"Game Mania","type":"fysiek","url":"https://www.gamemania.be","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO releases (
+  title, slug, category_id, brand_id, artist_id, league_id, venue_id, country_id, city_id,
+  release_type, status, official_url, source_url, description,
+  announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
+  drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4727,8 +5128,9 @@ INSERT INTO releases (
   NULL,
   'fashion'::release_type, 'announced'::release_status,
   'https://official.example.com/supreme-box-logo-fw26', 'https://source.example.com/supreme-box-logo-fw26', 'Supreme Box Logo Hoodie FW26 is een fashion drops met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-21T08:00:00.000Z'::timestamptz, '2026-11-24T08:00:00.000Z'::timestamptz, '2026-12-05T08:00:00.000Z'::timestamptz,
-  '2026-12-05T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-23T07:00:00.000Z'::timestamptz, '2026-11-26T07:00:00.000Z'::timestamptz, '2026-12-07T07:00:00.000Z'::timestamptz,
+  '2026-12-07T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'fashion-drops',
   168, 168, 'EUR', 2000, NULL,
   86, 84, 70, 88, 65, 67,
   'HIGH'::priority_level,
@@ -4737,12 +5139,12 @@ INSERT INTO releases (
   168, 320,
   287, 320, 360,
   119, 152, 192,
-  70.6, 90.5, 114.4,
+  70.5, 90.5, 114.4,
   26, 62, 86,
   'EXTREME', 'Estimated net ROI 58.3% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
-  68, 85, 34, 60, 85, 'TOP OPPORTUNITY',
-  83, 97, 41,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/supreme-box-logo-fw26","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  68, 85, 34, 60, 83, 'TOP OPPORTUNITY',
+  83, 89, 46,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/supreme-box-logo-fw26","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4750,6 +5152,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4772,8 +5175,9 @@ INSERT INTO releases (
   NULL,
   'fashion'::release_type, 'announced'::release_status,
   'https://official.example.com/palace-tri-ferg', 'https://source.example.com/palace-tri-ferg', 'Palace Tri-Ferg Drop is een fashion drops met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-24T13:00:00.000Z'::timestamptz, '2026-11-27T13:00:00.000Z'::timestamptz, '2026-12-08T13:00:00.000Z'::timestamptz,
-  '2026-12-08T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-25T08:00:00.000Z'::timestamptz, '2026-11-28T08:00:00.000Z'::timestamptz, '2026-12-09T08:00:00.000Z'::timestamptz,
+  '2026-12-09T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'fashion-drops',
   58, 120, 'EUR', 3500, NULL,
   72, 70, 59, 74, 54, 63,
   'MEDIUM'::priority_level,
@@ -4782,12 +5186,12 @@ INSERT INTO releases (
   58, 95,
   85, 95, 107,
   -4, 6, 18,
-  -4.4, 6.7, 20.1,
+  -4.5, 6.7, 20.2,
   41, 59, 72,
   'HIGH', 'Estimated net ROI -23.1% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
-  52, 73, 9, 60, 71, 'IGNORE',
-  69, 74, 31,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/palace-tri-ferg","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  51, 73, 9, 60, 71, 'IGNORE',
+  69, 71, 74,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/palace-tri-ferg","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4795,6 +5199,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4817,22 +5222,23 @@ INSERT INTO releases (
   NULL,
   'gaming'::release_type, 'announced'::release_status,
   'https://official.example.com/ps5-pro-bundle', 'https://source.example.com/ps5-pro-bundle', 'PlayStation 5 Pro Bundle is een gaming met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-26T07:00:00.000Z'::timestamptz, '2026-11-29T07:00:00.000Z'::timestamptz, '2026-12-10T07:00:00.000Z'::timestamptz,
-  '2026-12-10T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-27T13:00:00.000Z'::timestamptz, '2026-11-30T13:00:00.000Z'::timestamptz, '2026-12-11T13:00:00.000Z'::timestamptz,
+  '2026-12-11T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'gaming',
   599, 699, 'EUR', 15000, NULL,
   78, 76, 63, 80, 59, 65,
   'HIGH'::priority_level,
   (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
   NULL, NULL, NULL, NULL, NULL,
   599, 720,
-  645, 720, 810,
-  -4, 71, 161,
+  644, 720, 811,
+  -5, 71, 162,
   -0.7, 10.9, 24.9,
   37, 60, 78,
   'HIGH', 'Estimated net ROI 7.2% after direct fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
-  58, 66, 18, 50, 80, 'WATCH',
-  78, 100, 76,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/ps5-pro-bundle","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  55, 66, 18, 50, 76, 'IGNORE',
+  77, 78, 61,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/ps5-pro-bundle","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4840,6 +5246,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4862,8 +5269,9 @@ INSERT INTO releases (
   NULL,
   'gaming'::release_type, 'announced'::release_status,
   'https://official.example.com/switch-2-launch', 'https://source.example.com/switch-2-launch', 'Nintendo Switch 2 Launch Bundle is een gaming met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-28T08:00:00.000Z'::timestamptz, '2026-12-01T08:00:00.000Z'::timestamptz, '2026-12-12T08:00:00.000Z'::timestamptz,
-  '2026-12-12T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-11-29T07:00:00.000Z'::timestamptz, '2026-12-02T07:00:00.000Z'::timestamptz, '2026-12-13T07:00:00.000Z'::timestamptz,
+  '2026-12-13T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'gaming',
   449, 499, 'EUR', 50000, NULL,
   92, 90, 74, 93, 69, 68,
   'EXTREME'::priority_level,
@@ -4872,12 +5280,12 @@ INSERT INTO releases (
   449, 620,
   555, 620, 698,
   81, 146, 224,
-  17.1, 30.8, 47.2,
+  17.1, 30.8, 47.3,
   33, 63, 91,
   'EXTREME', 'Estimated net ROI 26.3% after direct fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
   64, 72, 24, 60, 87, 'HIGH PRIORITY',
-  90, 92, 55,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/switch-2-launch","country":"BE"}]'::jsonb, 'Extreme opportunity score — top-tier vraag en beperkte supply.', 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  91, 92, 92,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/switch-2-launch","country":"BE"}]'::jsonb, 'Extreme opportunity score — top-tier vraag en beperkte supply.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4885,6 +5293,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4907,8 +5316,9 @@ INSERT INTO releases (
   NULL,
   'fashion'::release_type, 'announced'::release_status,
   'https://official.example.com/kith-bmw-collection', 'https://source.example.com/kith-bmw-collection', 'Kith x BMW Collection is een fashion drops met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-11-30T13:00:00.000Z'::timestamptz, '2026-12-03T13:00:00.000Z'::timestamptz, '2026-12-14T13:00:00.000Z'::timestamptz,
-  '2026-12-14T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-12-01T08:00:00.000Z'::timestamptz, '2026-12-04T08:00:00.000Z'::timestamptz, '2026-12-15T08:00:00.000Z'::timestamptz,
+  '2026-12-15T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'fashion-drops',
   85, 350, 'EUR', 1500, NULL,
   74, 72, 60, 76, 56, 64,
   'MEDIUM'::priority_level,
@@ -4920,9 +5330,9 @@ INSERT INTO releases (
   -25.9, -17.2, -6.8,
   30, 59, 74,
   'EXTREME', 'Estimated net ROI -34.2% after stockx fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
-  55, 89, 9, 70, 72, 'IGNORE',
-  71, 71, 63,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/kith-bmw-collection","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  56, 89, 9, 70, 74, 'IGNORE',
+  72, 80, 42,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/kith-bmw-collection","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4930,6 +5340,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4952,22 +5363,23 @@ INSERT INTO releases (
   NULL,
   'fashion'::release_type, 'announced'::release_status,
   'https://official.example.com/stussy-world-tour', 'https://source.example.com/stussy-world-tour', 'Stüssy World Tour Tee Drop is een fashion drops met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-12-02T07:00:00.000Z'::timestamptz, '2026-12-05T07:00:00.000Z'::timestamptz, '2026-12-16T07:00:00.000Z'::timestamptz,
-  '2026-12-16T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-12-03T13:00:00.000Z'::timestamptz, '2026-12-06T13:00:00.000Z'::timestamptz, '2026-12-17T13:00:00.000Z'::timestamptz,
+  '2026-12-17T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'fashion-drops',
   45, 45, 'EUR', 8000, NULL,
   58, 56, 47, 60, 44, 60,
   'LOW'::priority_level,
   (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
   NULL, NULL, NULL, NULL, NULL,
   45, 62,
-  56, 62, 70,
-  11, 17, 25,
-  23.4, 37.8, 55.1,
+  55, 62, 70,
+  10, 17, 25,
+  23.3, 37.8, 55.1,
   26, 55, 58,
   'EXTREME', 'Estimated net ROI -12.4% after stockx fees (EUR). Confidence 26% from 23% estimate spread and data freshness. (Estimated)',
-  44, 57, 11, 70, 62, 'IGNORE',
-  56, 71, 69,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/stussy-world-tour","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  45, 57, 11, 70, 62, 'IGNORE',
+  56, 73, 68,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/stussy-world-tour","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -4975,6 +5387,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -4988,7 +5401,7 @@ INSERT INTO releases (
   buy_locations, hype_reason, sale_type, source_name, source_checked_at
 ) SELECT
   'Off-White x Nike Air Terra', 'off-white-nike-terra',
-  (SELECT id FROM release_categories WHERE slug = 'limited-sneakers'),
+  (SELECT id FROM release_categories WHERE slug = 'collabs'),
   (SELECT id FROM brands WHERE slug = 'nike'),
   NULL,
   NULL,
@@ -4996,9 +5409,10 @@ INSERT INTO releases (
   NULL,
   NULL,
   'product'::release_type, 'announced'::release_status,
-  'https://official.example.com/off-white-nike-terra', 'https://source.example.com/off-white-nike-terra', 'Off-White x Nike Air Terra is een beperkte sneaker-drop met hoge resale-interesse. SNKRS en raffle-winkels zijn de primaire kanalen; verwacht hoge sellout-kans binnen minuten.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-12-04T08:00:00.000Z'::timestamptz, '2026-12-07T08:00:00.000Z'::timestamptz, '2026-12-18T08:00:00.000Z'::timestamptz,
-  '2026-12-18T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'https://official.example.com/off-white-nike-terra', 'https://source.example.com/off-white-nike-terra', 'Off-White x Nike Air Terra is een collabs met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-12-05T07:00:00.000Z'::timestamptz, '2026-12-08T07:00:00.000Z'::timestamptz, '2026-12-19T07:00:00.000Z'::timestamptz,
+  '2026-12-19T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'schoenen', 'collabs',
   190, 190, 'EUR', 2500, NULL,
   88, 85, 71, 90, 66, 67,
   'EXTREME'::priority_level,
@@ -5010,9 +5424,9 @@ INSERT INTO releases (
   112, 136.8, 166.7,
   41, 67, 87,
   'HIGH', 'Estimated net ROI 100% after stockx fees (EUR). Confidence 41% from 23% estimate spread and data freshness. (Estimated)',
-  71, 81, 47, 50, 83, 'TOP OPPORTUNITY',
-  86, 85, 67,
-  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/off-white-nike-terra","country":"BE"}]'::jsonb, 'Grail-silhouet met beperkte stock — vergelijkbare drops deden +120–180% netto ROI.', 'raffle', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  69, 81, 47, 50, 80, 'TOP OPPORTUNITY',
+  84, 66, 59,
+  '[{"name":"SNKRS","type":"online","url":"https://www.nike.com/launch","country":"NL","note":"09:00 CET — LEO"},{"name":"Nike","type":"online","url":"https://official.example.com/off-white-nike-terra","country":"BE"}]'::jsonb, 'Extreme opportunity score — top-tier vraag en beperkte supply.', 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -5020,6 +5434,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -5042,8 +5457,9 @@ INSERT INTO releases (
   NULL,
   'gaming'::release_type, 'announced'::release_status,
   'https://official.example.com/xbox-series-x-elite', 'https://source.example.com/xbox-series-x-elite', 'Xbox Series X Elite Bundle is een gaming met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-12-06T13:00:00.000Z'::timestamptz, '2026-12-09T13:00:00.000Z'::timestamptz, '2026-12-20T13:00:00.000Z'::timestamptz,
-  '2026-12-20T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-12-07T08:00:00.000Z'::timestamptz, '2026-12-10T08:00:00.000Z'::timestamptz, '2026-12-21T08:00:00.000Z'::timestamptz,
+  '2026-12-21T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'gaming',
   549, 599, 'EUR', 22000, NULL,
   68, 66, 55, 70, 51, 62,
   'MEDIUM'::priority_level,
@@ -5056,8 +5472,8 @@ INSERT INTO releases (
   37, 58, 68,
   'HIGH', 'Estimated net ROI -0.8% after direct fees (EUR). Confidence 37% from 23% estimate spread and data freshness. (Estimated)',
   50, 62, 15, 60, 69, 'IGNORE',
-  69, 74, 47,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/xbox-series-x-elite","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  66, 78, 76,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/xbox-series-x-elite","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -5065,6 +5481,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -5087,22 +5504,23 @@ INSERT INTO releases (
   NULL,
   'fashion'::release_type, 'announced'::release_status,
   'https://official.example.com/fog-essentials-drop', 'https://source.example.com/fog-essentials-drop', 'Fear of God Essentials Drop is een fashion drops met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-12-08T07:00:00.000Z'::timestamptz, '2026-12-11T07:00:00.000Z'::timestamptz, '2026-12-22T07:00:00.000Z'::timestamptz,
-  '2026-12-22T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-12-09T13:00:00.000Z'::timestamptz, '2026-12-12T13:00:00.000Z'::timestamptz, '2026-12-23T13:00:00.000Z'::timestamptz,
+  '2026-12-23T13:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'fashion-drops',
   90, 220, 'EUR', 12000, NULL,
   64, 62, 52, 66, 48, 61,
   'LOW'::priority_level,
   (SELECT id FROM source_adapters WHERE name = 'TITAN Mock Seed' LIMIT 1),
   NULL, NULL, NULL, NULL, NULL,
   90, 115,
-  103, 115, 129,
-  -52, -40, -26,
+  103, 115, 130,
+  -52, -40, -25,
   -33.6, -25.8, -16.5,
   33, 57, 64,
   'EXTREME', 'Estimated net ROI -44.5% after stockx fees (EUR). Confidence 33% from 23% estimate spread and data freshness. (Estimated)',
-  47, 60, 9, 70, 67, 'IGNORE',
-  62, 79, 71,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/fog-essentials-drop","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  46, 60, 9, 70, 65, 'IGNORE',
+  63, 67, 33,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/fog-essentials-drop","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO releases (
@@ -5110,6 +5528,7 @@ INSERT INTO releases (
   release_type, status, official_url, source_url, description,
   announced_at, presale_starts_at, general_sale_starts_at, release_starts_at,
   drop_at, drop_time_confirmed, drop_timezone, drop_event_type,
+  main_category, sub_category,
   price_min, price_max, currency, stock_estimate, capacity_estimate,
   hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score,
   priority_level, source_adapter_id,
@@ -5132,8 +5551,9 @@ INSERT INTO releases (
   NULL,
   'gaming'::release_type, 'announced'::release_status,
   'https://official.example.com/steam-deck-oled-ltd', 'https://source.example.com/steam-deck-oled-ltd', 'Steam Deck OLED Limited is een gaming met verhoogde hype en beperkte voorraad. Relevant voor resellers die vroeg instappen via officiële kanalen.',
-  '2026-06-12T08:32:28.228Z'::timestamptz, '2026-12-10T08:00:00.000Z'::timestamptz, '2026-12-13T08:00:00.000Z'::timestamptz, '2026-12-24T08:00:00.000Z'::timestamptz,
-  '2026-12-24T08:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  '2026-06-12T08:53:48.985Z'::timestamptz, '2026-12-11T07:00:00.000Z'::timestamptz, '2026-12-14T07:00:00.000Z'::timestamptz, '2026-12-25T07:00:00.000Z'::timestamptz,
+  '2026-12-25T07:00:00.000Z'::timestamptz, true, 'Europe/Brussels', 'release',
+  'overig', 'gaming',
   569, 569, 'EUR', 18000, NULL,
   70, 68, 57, 72, 53, 63,
   'MEDIUM'::priority_level,
@@ -5145,9 +5565,9 @@ INSERT INTO releases (
   -4.1, 7.2, 20.7,
   30, 58, 70,
   'EXTREME', 'Estimated net ROI 3.5% after direct fees (EUR). Confidence 30% from 23% estimate spread and data freshness. (Estimated)',
-  52, 62, 16, 60, 72, 'IGNORE',
-  68, 82, 60,
-  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/steam-deck-oled-ltd","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:32:28.229Z'::timestamptz
+  51, 62, 16, 60, 69, 'IGNORE',
+  67, 69, 63,
+  '[{"name":"Officiële winkel","type":"online","url":"https://official.example.com/steam-deck-oled-ltd","country":"BE"}]'::jsonb, NULL, 'drop', 'TITAN Mock', '2026-07-03T08:53:48.987Z'::timestamptz
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================================

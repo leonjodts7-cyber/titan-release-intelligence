@@ -14,8 +14,11 @@ import { DropCard } from "@/components/drops/drop-card";
 import { LiveActivityPanel } from "@/components/intelligence/live-activity-panel";
 import { t } from "@/lib/i18n";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { nl } from "date-fns/locale";
+import { classifyRelease, MAIN_CATEGORIES, hubRoute, type MainCategory } from "@/lib/categories/taxonomy";
+import { tierShortLabel } from "@/lib/tiers";
 import { getLastIngestAt } from "@/lib/sources/ingest";
 
 export const dynamic = "force-dynamic";
@@ -32,8 +35,25 @@ export default async function VandaagPage() {
   const now = new Date();
   const upcoming = sortByDropTime(filterUpcoming(releases, now));
   const todayTomorrow = filterTodayTomorrow(upcoming, now);
-  const bestWeek = topTierWithinWeek(releases, 3, now);
-  const laterYear = topTierLaterYear(releases, 3, now);
+  const todayIds = new Set(todayTomorrow.map((r) => r.id));
+  const bestWeek = topTierWithinWeek(releases, 3, now).filter((r) => !todayIds.has(r.id));
+  const laterYear = topTierLaterYear(releases, 3, now).filter((r) => !todayIds.has(r.id));
+
+  const hubMains: MainCategory[] = ["schoenen", "tickets", "kaarten"];
+  const categoryTiles = hubMains.map((main) => {
+    const catReleases = upcoming.filter((r) => classifyRelease(r).main === main);
+    const weekCount = catReleases.filter((r) => {
+      const at = r.drop_at ?? r.release_starts_at;
+      if (!at) return false;
+      const t = new Date(at).getTime();
+      return t <= now.getTime() + 7 * 86400000;
+    }).length;
+    const topper = catReleases.find((r) => {
+      const tier = tierShortLabel(r.opportunity_action);
+      return tier === "TOP" || tier === "MUST WATCH";
+    }) ?? catReleases[0];
+    return { main, weekCount, topper };
+  });
 
   const onlineSources = sources.filter((s) => s.enabled && !s.last_error).length;
   const lastScan = scans[0];
@@ -54,16 +74,47 @@ export default async function VandaagPage() {
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {todayTomorrow.map((r) => (
-                <DropCard key={r.id} release={r} />
+                <DropCard key={r.id} release={r} categoryAccent />
               ))}
             </div>
           )}
         </section>
 
         <section>
+          <h2 className="intel-section-title mb-2">{t("today.perCategory")}</h2>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {categoryTiles.map(({ main, weekCount, topper }) => {
+              const meta = MAIN_CATEGORIES[main];
+              return (
+                <Link
+                  key={main}
+                  href={hubRoute(main)}
+                  className={cn(
+                    "rounded-xl border border-titan-border bg-titan-surface p-3 hover:border-zinc-500 transition-colors border-l-4",
+                    meta.border
+                  )}
+                >
+                  <p className={cn("font-semibold text-sm", meta.color)}>{meta.label}</p>
+                  <p className="text-[10px] text-titan-muted mt-1">
+                    {t("today.dropsNext7", { count: weekCount })}
+                  </p>
+                  {topper && (
+                    <p className="text-xs mt-2 line-clamp-2">
+                      <span className="text-titan-muted">{t("today.nextTopper")}: </span>
+                      {topper.title}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-titan-accent mt-2">{t("today.openHub")}</p>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
           <div className="flex items-center justify-between mb-2">
             <h2 className="intel-section-title">{t("today.bestWeek")}</h2>
-            <Link href="/dashboard/drops" className="text-[10px] text-titan-accent hover:underline">
+            <Link href="/dashboard/kalender" className="text-[10px] text-titan-accent hover:underline">
               {t("terms.viewAll")}
             </Link>
           </div>
