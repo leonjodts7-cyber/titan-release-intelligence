@@ -1,18 +1,85 @@
 import type { Release } from "@/types";
+import type { OpportunityAction } from "@/types";
 import { resaleIntelligenceService } from "@/services/resale-intelligence.service";
 import type { ResaleIntelligence } from "@/services/resale-intelligence.service";
 import { intelligenceEnrichmentService, type IntelligenceProfile } from "@/services/intelligence-enrichment.service";
 import { opportunityEngineService, type OpportunityEngineResult } from "@/services/opportunity-engine.service";
 import { assignOpportunityTiers } from "@/lib/scoring-v2";
 import { withCategoryFields } from "@/lib/categories/taxonomy";
+import { isVerifiedRelease } from "@/lib/data/origin";
+import { getDropAt } from "@/lib/drop";
 
 export type EnrichedRelease = Release &
   ResaleIntelligence &
   IntelligenceProfile &
   OpportunityEngineResult;
 
+function honestEnrich(release: Release): EnrichedRelease {
+  const categorized = withCategoryFields(release);
+  const isTicket = categorized.release_type === "ticket";
+  const dropAt = getDropAt(categorized);
+  const daysUntil = dropAt
+    ? (new Date(dropAt).getTime() - Date.now()) / 86400000
+    : null;
+
+  let action: OpportunityAction = "WATCH";
+  if (categorized.status === "on_sale") action = "WATCH";
+  else if (daysUntil != null && daysUntil <= 2) action = "HIGH PRIORITY";
+  else if (daysUntil != null && daysUntil <= 7) action = "PREPARE";
+
+  return {
+    ...categorized,
+    retail_price_min: categorized.price_min ?? null,
+    retail_price_max: categorized.price_max ?? null,
+    retail_currency: categorized.currency ?? "EUR",
+    retail_eur: categorized.price_min ?? null,
+    resale_eur_mid: null,
+    estimated_resale_low: null,
+    estimated_resale_mid: null,
+    estimated_resale_high: null,
+    expected_profit_low: null,
+    expected_profit_mid: null,
+    expected_profit_high: null,
+    expected_roi_low: null,
+    expected_roi_mid: null,
+    expected_roi_high: null,
+    net_profit_mid_eur: null,
+    net_roi_mid: null,
+    gross_roi_mid: null,
+    resale_platform: "",
+    net_margin_score: 0,
+    resale_confidence_score: 0,
+    market_liquidity_score: 0,
+    demand_pressure_score: isTicket ? Math.min(80, categorized.capacity_estimate ? 60 : 40) : 0,
+    resale_risk_level: "LOW",
+    resale_explanation: isTicket
+      ? "Alleen officiële ticketdata — geen resale- of winstinschatting."
+      : "Gecureerde of API-bron — geen verzonnen resale-metrics.",
+    is_estimated: false,
+    hype_score: 0,
+    demand_score: 0,
+    urgency_score: daysUntil != null && daysUntil <= 3 ? 70 : 30,
+    sellout_probability: 0,
+    resale_interest_score: 0,
+    confidence_score: categorized.drop_time_confirmed ? 90 : 60,
+    opportunity_score: daysUntil != null && daysUntil <= 7 ? 65 : 40,
+    scarcity_score: 0,
+    resale_potential: 0,
+    risk_score: 0,
+    action_urgency: daysUntil != null && daysUntil <= 1 ? 90 : 40,
+    opportunity_action: action,
+    popularity_score: 0,
+    momentum_score: 0,
+    volatility_score: 0,
+    hype_reason: categorized.hype_reason ?? null,
+  } as EnrichedRelease;
+}
+
 function enrichReleaseCore(release: Release): EnrichedRelease {
   const categorized = withCategoryFields(release);
+  if (isVerifiedRelease(categorized)) {
+    return honestEnrich(categorized);
+  }
   const resale = resaleIntelligenceService.analyze(categorized);
   const intel = intelligenceEnrichmentService.enrich(categorized, resale);
   const opportunity = opportunityEngineService.score(categorized, resale, intel);
@@ -21,12 +88,15 @@ function enrichReleaseCore(release: Release): EnrichedRelease {
 
 export function enrichRelease(release: Release): EnrichedRelease {
   const enriched = enrichReleaseCore(release);
+  if (isVerifiedRelease(release)) return enriched;
   return assignOpportunityTiers([enriched])[0];
 }
 
 export function enrichReleases(releases: Release[]): EnrichedRelease[] {
   const enriched = releases.map(enrichReleaseCore);
-  return assignOpportunityTiers(enriched);
+  const verified = enriched.filter(isVerifiedRelease);
+  const mock = enriched.filter((r) => !isVerifiedRelease(r));
+  return [...verified, ...assignOpportunityTiers(mock)];
 }
 
 export function sortByOpportunity(releases: EnrichedRelease[]): EnrichedRelease[] {

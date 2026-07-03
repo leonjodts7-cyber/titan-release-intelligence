@@ -1,0 +1,49 @@
+[
+  {
+    "_file_rule": "HARDE REGEL: entries zonder geldige source_url worden geweigerd door npm run validate-data. Voeg ALLEEN drops toe met een door de gebruiker geverifieerde officiële bron-URL. Cursor mag geen datums of producten verzinnen.",
+    "placeholder": true,
+    "name": "PLACEHOLDER — voorbeeldstructuur (niet renderen)",
+    "main_category": "schoenen",
+    "sub_category": "limited-sneakers",
+    "drop_at": null,
+    "timezone": "Europe/Brussels",
+    "confirmed": false,
+    "currency": "EUR",
+    "buy_locations": [],
+    "source_url": "https://example.com/placeholder-do-not-use",
+    "added_at": "2026-01-01"
+  },
+  {
+    "name": "FIFA World Cup 2026 — Finale",
+    "main_category": "tickets",
+    "sub_category": "football",
+    "status": "on_sale",
+    "sale_label": "Verkoop loopt — resale via officiële FIFA marketplace",
+    "event_date": "2026-07-19T20:00:00.000Z",
+    "event_venue": "MetLife Stadium",
+    "event_city": "East Rutherford, New York/New Jersey",
+    "drop_at": null,
+    "timezone": "America/New_York",
+    "confirmed": true,
+    "currency": "USD",
+    "buy_locations": [
+      {
+        "name": "FIFA officiële verkoop",
+        "type": "online",
+        "url": "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/tickets",
+        "country": "US",
+        "note": "Laatste verkoopfase live sinds 1 april 2026 (FCFS)"
+      },
+      {
+        "name": "FIFA Resale Marketplace",
+        "type": "online",
+        "url": "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/tickets",
+        "country": "US",
+        "note": "Officiële doorverkoop via FIFA"
+      }
+    ],
+    "description": "WK 2026 finale in MetLife Stadium (New York/New Jersey) op 19 juli 2026. Verkoop loopt via officiële FIFA-kanalen; laatste fase first-come-first-served sinds 1 april 2026.",
+    "source_url": "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/sales-phases",
+    "added_at": "2026-07-03"
+  }
+]

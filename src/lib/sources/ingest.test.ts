@@ -12,29 +12,37 @@ function item(partial: Partial<NormalizedRelease> & { title: string }): Normaliz
 }
 
 describe("dedupeIngestReleases", () => {
-  it("merges same event from multiple sources on name+date+venue", () => {
+  it("dedupes on external_source + external_source_id", () => {
     const a = item({
-      title: "UCL Final",
+      title: "UCL Final — Voorverkoop",
       drop_at: "2026-05-30T18:00:00Z",
-      venue_name: "Allianz Arena",
       external_source: "ticketmaster",
-      external_source_id: "tm-1",
+      external_source_id: "tm-1-presale-0",
     });
     const b = item({
-      title: "UCL Final",
-      drop_at: "2026-05-30T20:00:00Z",
-      venue_name: "Allianz Arena",
-      external_source: "rss",
-      external_source_id: "rss-1",
+      title: "UCL Final — Voorverkoop (duplicate)",
+      drop_at: "2026-05-30T18:00:00Z",
+      external_source: "ticketmaster",
+      external_source_id: "tm-1-presale-0",
     });
     const out = dedupeIngestReleases([a, b]);
     expect(out).toHaveLength(1);
-    expect(out[0].external_source).toBe("ticketmaster");
+    expect(out[0].title).toBe("UCL Final — Voorverkoop");
   });
 
-  it("keeps distinct events with different venues", () => {
-    const a = item({ title: "Show", drop_at: "2026-06-01T18:00:00Z", venue_name: "A" });
-    const b = item({ title: "Show", drop_at: "2026-06-01T18:00:00Z", venue_name: "B" });
+  it("keeps distinct drops with different external_source_id", () => {
+    const a = item({
+      title: "Coldplay — Voorverkoop",
+      drop_at: "2026-06-01T18:00:00Z",
+      external_source: "ticketmaster",
+      external_source_id: "ev-presale-0",
+    });
+    const b = item({
+      title: "Coldplay — Algemene verkoop",
+      drop_at: "2026-06-05T10:00:00Z",
+      external_source: "ticketmaster",
+      external_source_id: "ev-public",
+    });
     expect(dedupeIngestReleases([a, b])).toHaveLength(2);
   });
 });

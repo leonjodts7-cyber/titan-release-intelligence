@@ -7,6 +7,7 @@ export interface BuyLocation {
 }
 
 export type MainCategory = "schoenen" | "tickets" | "kaarten" | "overig";
+export type DataOrigin = "mock" | "api" | "curated";
 export type SaleType = "drop" | "raffle" | "preorder" | "voorverkoop" | "algemene_verkoop";
 export type PriorityLevel = "LOW" | "MEDIUM" | "HIGH" | "EXTREME";
 export type ReleaseStatus = "rumored" | "announced" | "presale" | "on_sale" | "sold_out" | "cancelled" | "ended";
@@ -62,6 +63,7 @@ export interface Release {
   main_category?: MainCategory | null;
   sub_category?: string | null;
   event_date?: string | null;
+  data_origin?: DataOrigin | null;
   buy_locations?: BuyLocation[];
   hype_reason?: string | null;
   sale_type?: SaleType;
@@ -267,6 +269,10 @@ export interface NormalizedRelease {
   source_checked_at?: string;
   external_source?: string;
   external_source_id?: string;
+  event_date?: string;
+  main_category?: MainCategory;
+  sub_category?: string;
+  data_origin?: DataOrigin;
 }
 
 export interface AIScoreResult {

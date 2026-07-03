@@ -6,6 +6,7 @@ import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { getDropMeta } from "@/lib/drop";
 import { formatDrop } from "@/lib/time";
 import { formatEur } from "@/lib/money";
+import { isVerifiedRelease } from "@/lib/data/origin";
 import { t } from "@/lib/i18n";
 import { Badge, tierBadgeLabel } from "@/components/ui/badge";
 
@@ -30,38 +31,64 @@ export function DropDetailDrawer({ release, open, onClose }: DropDetailDrawerPro
   if (!open) return null;
   const meta = getDropMeta(release);
   const isTicket = release.release_type === "ticket";
+  const verified = isVerifiedRelease(release);
 
-  const groups = [
-    {
-      title: t("drops.drawer.demand"),
-      metrics: [
-        { label: t("terms.hype"), value: String(Math.round(release.hype_score)), tip: t("tooltips.hype") },
-        { label: t("terms.sellout"), value: `${Math.round(release.sellout_probability)}%`, tip: t("tooltips.sellout") },
-        { label: t("terms.momentum"), value: String(release.momentum_score ?? "—"), tip: t("tooltips.momentum") },
-      ],
-    },
-    {
-      title: t("drops.drawer.market"),
-      metrics: [
-        { label: t("terms.liquidity"), value: `${Math.round(release.market_liquidity_score)}%`, tip: t("tooltips.liquidity") },
-        { label: t("terms.confidence"), value: `${Math.round(release.resale_confidence_score)}%`, tip: t("tooltips.confidence") },
-        { label: t("terms.risk"), value: String(release.risk_score), tip: t("tooltips.risk") },
-      ],
-    },
-    {
-      title: t("drops.drawer.pricing"),
-      metrics: [
-        { label: t("terms.retail"), value: formatEur(release.retail_eur), tip: t("tooltips.retail") },
-        { label: t("terms.estResale"), value: formatEur(release.resale_eur_mid), tip: t("tooltips.resale") },
-        ...(!isTicket
-          ? [
-              { label: t("terms.netProfit"), value: formatEur(release.net_profit_mid_eur), tip: t("tooltips.netProfit") },
-              { label: t("terms.netRoi"), value: release.net_roi_mid != null ? `${release.net_roi_mid}%` : "—", tip: t("tooltips.netRoi") },
-            ]
-          : []),
-      ],
-    },
-  ];
+  const groups = verified
+    ? [
+        {
+          title: t("drops.drawer.facts"),
+          metrics: [
+            ...(release.price_min != null
+              ? [
+                  {
+                    label: t("terms.retail"),
+                    value:
+                      release.price_max != null
+                        ? `${formatEur(release.price_min)} – ${formatEur(release.price_max)}`
+                        : formatEur(release.price_min),
+                    tip: t("tooltips.retail"),
+                  },
+                ]
+              : []),
+            {
+              label: t("drops.drawer.dataNote"),
+              value: isTicket ? t("drops.ticketMonitor") : t("drops.drawer.noResaleEstimate"),
+              tip: t("drops.drawer.dataNote"),
+            },
+          ],
+        },
+      ]
+    : [
+        {
+          title: t("drops.drawer.demand"),
+          metrics: [
+            { label: t("terms.hype"), value: String(Math.round(release.hype_score)), tip: t("tooltips.hype") },
+            { label: t("terms.sellout"), value: `${Math.round(release.sellout_probability)}%`, tip: t("tooltips.sellout") },
+            { label: t("terms.momentum"), value: String(release.momentum_score ?? "—"), tip: t("tooltips.momentum") },
+          ],
+        },
+        {
+          title: t("drops.drawer.market"),
+          metrics: [
+            { label: t("terms.liquidity"), value: `${Math.round(release.market_liquidity_score)}%`, tip: t("tooltips.liquidity") },
+            { label: t("terms.confidence"), value: `${Math.round(release.resale_confidence_score)}%`, tip: t("tooltips.confidence") },
+            { label: t("terms.risk"), value: String(release.risk_score), tip: t("tooltips.risk") },
+          ],
+        },
+        {
+          title: t("drops.drawer.pricing"),
+          metrics: [
+            { label: t("terms.retail"), value: formatEur(release.retail_eur), tip: t("tooltips.retail") },
+            { label: t("terms.estResale"), value: formatEur(release.resale_eur_mid), tip: t("tooltips.resale") },
+            ...(!isTicket
+              ? [
+                  { label: t("terms.netProfit"), value: formatEur(release.net_profit_mid_eur), tip: t("tooltips.netProfit") },
+                  { label: t("terms.netRoi"), value: release.net_roi_mid != null ? `${release.net_roi_mid}%` : "—", tip: t("tooltips.netRoi") },
+                ]
+              : []),
+          ],
+        },
+      ];
 
   return (
     <>
@@ -75,7 +102,7 @@ export function DropDetailDrawer({ release, open, onClose }: DropDetailDrawerPro
           <div>
             <h2 className="font-semibold text-sm pr-6">{release.title}</h2>
             <p className="text-[10px] text-titan-muted mt-1">{formatDrop(meta)}</p>
-            {release.opportunity_action && (
+            {!verified && release.opportunity_action && (
               <Badge variant="tier" label={tierBadgeLabel(release.opportunity_action)} className="mt-2" />
             )}
           </div>

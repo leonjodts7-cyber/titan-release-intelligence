@@ -1,10 +1,10 @@
 import { getSupabaseClient } from "@/lib/supabase/client-factory";
 import type { NormalizedRelease } from "@/types";
 import { ticketmasterAdapter } from "./ticketmaster";
-import { sneakersAdapter } from "./sneakers";
+import { curatedAdapter } from "./curated";
 import type { IngestResult, IngestSummary, SourceAdapter } from "./types";
 
-const ADAPTERS: SourceAdapter[] = [ticketmasterAdapter, sneakersAdapter];
+const ADAPTERS: SourceAdapter[] = [ticketmasterAdapter, curatedAdapter];
 
 let lastIngestAt: string | null = null;
 
@@ -13,10 +13,9 @@ export function getLastIngestAt(): string | null {
 }
 
 function dedupeKey(r: NormalizedRelease): string {
-  const name = r.title.trim().toLowerCase();
-  const date = (r.drop_at ?? r.release_starts_at ?? "").slice(0, 10);
-  const venue = (r.venue_name ?? "").toLowerCase();
-  return `${name}|${date}|${venue}`;
+  const src = r.external_source ?? "unknown";
+  const id = r.external_source_id ?? r.slug ?? r.title;
+  return `${src}|${id}`;
 }
 
 export function dedupeIngestReleases(items: NormalizedRelease[]): NormalizedRelease[] {
@@ -47,8 +46,13 @@ async function upsertRelease(item: NormalizedRelease): Promise<"created" | "upda
     drop_at: item.drop_at ?? item.release_starts_at ?? null,
     drop_time_confirmed: item.drop_time_confirmed ?? false,
     drop_timezone: item.drop_timezone ?? "Europe/Brussels",
+    drop_event_type: item.drop_event_type ?? null,
     presale_starts_at: item.presale_starts_at ?? null,
     general_sale_starts_at: item.general_sale_starts_at ?? null,
+    event_date: item.event_date ?? null,
+    main_category: item.main_category ?? null,
+    sub_category: item.sub_category ?? null,
+    data_origin: item.data_origin ?? "api",
     price_min: item.price_min ?? null,
     price_max: item.price_max ?? null,
     currency: item.currency ?? "EUR",
@@ -148,11 +152,11 @@ export async function rolloverPastDrops(): Promise<number> {
   const supabase = getSupabaseClient();
   if (!supabase) return 0;
 
-  const now = new Date().toISOString();
   const { data } = await supabase
     .from("releases")
     .select("id, drop_at, release_starts_at, status")
-    .neq("status", "ended");
+    .neq("status", "ended")
+    .in("data_origin", ["api", "curated"]);
 
   let count = 0;
   for (const r of data ?? []) {

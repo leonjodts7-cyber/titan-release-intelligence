@@ -1,5 +1,5 @@
 import type { Release } from "@/types";
-import { getDropMeta } from "@/lib/drop";
+import { getDropAt, getDropMeta } from "@/lib/drop";
 import { formatDrop } from "@/lib/time";
 
 const MONTH_NAMES = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"] as const;
@@ -19,6 +19,10 @@ function eventLabel(iso: string, city?: string | null): string {
 }
 
 export function formatTicketSaleLine(release: Release): string {
+  const dropAt = getDropAt(release);
+  if (release.status === "on_sale" && !dropAt) {
+    return release.hype_reason ?? "Verkoop loopt";
+  }
   const meta = getDropMeta(release);
   return `Verkoop: ${formatDrop(meta)}`;
 }

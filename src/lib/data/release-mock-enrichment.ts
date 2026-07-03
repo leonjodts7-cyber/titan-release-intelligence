@@ -102,7 +102,7 @@ export function enrichMockRelease(release: Release, index: number): Release {
     buy_locations,
     hype_reason,
     sale_type: saleTypeFor(release),
-    source_name: "TITAN Mock",
+    source_name: "Demo data",
     source_checked_at: new Date().toISOString(),
   };
 }

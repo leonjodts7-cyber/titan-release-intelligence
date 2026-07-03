@@ -1,9 +1,12 @@
 import type { Release } from "@/types";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { generateMockReleases } from "@/lib/data/mock-releases";
 import { enrichReleases } from "@/lib/data/enrich-releases";
 import { classifyRelease } from "./taxonomy";
 import { isRealisticDropTime } from "@/lib/drop-times";
 import { getDropAt } from "@/lib/drop";
+import type { CuratedDropRow } from "@/lib/sources/curated";
 
 export interface ValidationIssue {
   slug: string;
@@ -131,6 +134,78 @@ export function validateAllReleases(releases: Release[]): ValidationIssue[] {
   return releases.flatMap(validateRelease);
 }
 
+export function validateCuratedRows(rows: CuratedDropRow[]): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const row of rows) {
+    if (row.placeholder || row._comment) continue;
+    const slug = row.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) ?? "unknown";
+
+    if (!row.source_url?.trim()) {
+      issues.push({
+        slug,
+        title: row.name ?? slug,
+        code: "curated_missing_source_url",
+        message: "Curated entry zonder source_url — HARDE REGEL: verplichte bronvermelding",
+      });
+      continue;
+    }
+
+    try {
+      const u = new URL(row.source_url);
+      if (u.protocol !== "http:" && u.protocol !== "https:") {
+        throw new Error("invalid protocol");
+      }
+      if (u.hostname === "example.com" || u.hostname.endsWith(".local")) {
+        issues.push({
+          slug,
+          title: row.name ?? slug,
+          code: "curated_invalid_source_url",
+          message: `source_url is geen geldige officiële bron: ${row.source_url}`,
+        });
+      }
+    } catch {
+      issues.push({
+        slug,
+        title: row.name ?? slug,
+        code: "curated_invalid_source_url",
+        message: `source_url is ongeldig: ${row.source_url}`,
+      });
+    }
+
+    if (!row.name?.trim()) {
+      issues.push({
+        slug,
+        title: row.name ?? slug,
+        code: "curated_missing_name",
+        message: "Curated entry zonder naam",
+      });
+    }
+  }
+
+  return issues;
+}
+
+export function validateCuratedDrops(): ValidationIssue[] {
+  const path = join(process.cwd(), "data", "curated-drops.json");
+  let rows: CuratedDropRow[];
+
+  try {
+    rows = JSON.parse(readFileSync(path, "utf-8")) as CuratedDropRow[];
+  } catch (err) {
+    return [
+      {
+        slug: "curated-drops.json",
+        title: "curated-drops.json",
+        code: "curated_file_unreadable",
+        message: err instanceof Error ? err.message : "Kan curated-drops.json niet lezen",
+      },
+    ];
+  }
+
+  return validateCuratedRows(rows);
+}
+
 export function validateMockData(): ValidationIssue[] {
-  return validateAllReleases(enrichReleases(generateMockReleases()));
+  return [...validateAllReleases(enrichReleases(generateMockReleases())), ...validateCuratedDrops()];
 }

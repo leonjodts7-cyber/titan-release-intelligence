@@ -4,13 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { Footprints, Ticket, Layers, Package, ChevronRight } from "lucide-react";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
-import { getDropMeta, type DropCategory } from "@/lib/drop";
-import { formatDrop, formatDropTime } from "@/lib/time";
+import { getDropMeta, getDropAt, type DropCategory } from "@/lib/drop";
+import { formatDrop } from "@/lib/time";
 import { formatEur } from "@/lib/money";
 import { formatTicketSaleLine, formatTicketEventLine } from "@/lib/tickets/display";
 import { Badge, tierBadgeLabel } from "@/components/ui/badge";
 import { DropCountdown } from "@/components/drops/drop-countdown";
 import { DropDetailDrawer } from "@/components/drops/drop-detail-drawer";
+import { SourceOrigin } from "@/components/drops/source-origin";
+import { isVerifiedRelease } from "@/lib/data/origin";
 import { t } from "@/lib/i18n";
 import { classifyRelease, MAIN_CATEGORIES } from "@/lib/categories/taxonomy";
 import { cn } from "@/lib/utils";
@@ -28,17 +30,35 @@ interface DropCardProps {
   categoryAccent?: boolean;
 }
 
+function verifiedPriceLine(release: EnrichedRelease): string {
+  if (release.price_min != null && release.price_max != null) {
+    return t("drops.priceRange", {
+      min: formatEur(release.price_min),
+      max: formatEur(release.price_max),
+    });
+  }
+  if (release.price_min != null) {
+    return t("drops.priceFrom", { price: formatEur(release.price_min) });
+  }
+  return "—";
+}
+
 export function DropCard({ release, compact, categoryAccent }: DropCardProps) {
   const [open, setOpen] = useState(false);
   const meta = getDropMeta(release);
   const Icon = CATEGORY_ICONS[meta.dropCategory];
   const isTicket = release.release_type === "ticket";
+  const verified = isVerifiedRelease(release);
+  const hasDrop = Boolean(getDropAt(release));
   const profitMid = release.net_profit_mid_eur ?? release.expected_profit_mid;
   const profitLow = profitMid != null ? Math.round(profitMid * 0.7) : null;
   const profitHigh = profitMid != null ? Math.round(profitMid * 1.3) : null;
 
-  const coreStat =
-    !isTicket && profitLow != null && profitHigh != null
+  const coreStat = verified
+    ? isTicket
+      ? release.hype_reason ?? t("drops.ticketMonitor")
+      : verifiedPriceLine(release)
+    : !isTicket && profitLow != null && profitHigh != null
       ? t("drops.netProfitRange", {
           low: formatEur(profitLow),
           high: formatEur(profitHigh),
@@ -89,7 +109,7 @@ export function DropCard({ release, compact, categoryAccent }: DropCardProps) {
                   )}
                 </p>
               </div>
-              {release.opportunity_action && (
+              {!verified && release.opportunity_action && (
                 <Badge variant="tier" label={tierBadgeLabel(release.opportunity_action)} className="shrink-0" />
               )}
             </div>
@@ -103,28 +123,40 @@ export function DropCard({ release, compact, categoryAccent }: DropCardProps) {
               >
                 {isTicket ? formatTicketSaleLine(release) : formatDrop(meta)}
               </span>
-              <DropCountdown release={release} />
+              {hasDrop && <DropCountdown release={release} />}
             </div>
 
             {ticketEvent && (
               <p className="text-[10px] text-titan-muted mt-1">{ticketEvent}</p>
             )}
 
-            <p className="text-xs text-profit font-medium mt-2">{coreStat}</p>
+            <p className={cn("text-xs font-medium mt-2", verified ? "text-zinc-300" : "text-profit")}>
+              {coreStat}
+            </p>
 
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="mt-2 flex items-center gap-1 text-[10px] text-titan-muted hover:text-titan-accent transition-colors"
-            >
-              {t("drops.moreMetrics")}
-              <ChevronRight className="w-3 h-3" />
-            </button>
+            {verified && (
+              <div className="mt-2">
+                <SourceOrigin release={release} />
+              </div>
+            )}
+
+            {!verified && (
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="mt-2 flex items-center gap-1 text-[10px] text-titan-muted hover:text-titan-accent transition-colors"
+              >
+                {t("drops.moreMetrics")}
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
       </article>
 
-      <DropDetailDrawer release={release} open={open} onClose={() => setOpen(false)} />
+      {!verified && (
+        <DropDetailDrawer release={release} open={open} onClose={() => setOpen(false)} />
+      )}
     </>
   );
 }

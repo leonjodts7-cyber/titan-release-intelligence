@@ -14,6 +14,14 @@ export function isUpcomingRelease(release: Release, now = new Date()): boolean {
   return new Date(dropAt).getTime() >= now.getTime();
 }
 
+/** Visible in live lists: upcoming drops or ongoing on_sale without a future drop moment. */
+export function isVisibleRelease(release: Release, now = new Date()): boolean {
+  if (release.status === "ended" || release.status === "cancelled") return false;
+  const dropAt = getDropAt(release);
+  if (dropAt) return new Date(dropAt).getTime() >= now.getTime();
+  return release.status === "on_sale";
+}
+
 export function markPastReleases(releases: Release[], now = new Date()): Release[] {
   return releases.map((r) => {
     const dropAt = getDropAt(r);
@@ -40,7 +48,7 @@ export function filterReleasesByTime(
 
   if (options.includePast) return withStatus;
 
-  return withStatus.filter((r) => isUpcomingRelease(r, now));
+  return withStatus.filter((r) => isVisibleRelease(r, now));
 }
 
 export function sortReleasesByDropAt(releases: Release[]): Release[] {

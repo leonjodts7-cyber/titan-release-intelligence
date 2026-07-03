@@ -203,7 +203,7 @@ INSERT INTO releases (
   resale_confidence_score, market_liquidity_score, demand_pressure_score, resale_risk_level, resale_explanation,
   opportunity_score, scarcity_score, resale_potential, risk_score, action_urgency, opportunity_action,
   popularity_score, momentum_score, volatility_score,
-  buy_locations, hype_reason, sale_type, source_name, source_checked_at
+  buy_locations, hype_reason, sale_type, source_name, source_checked_at, data_origin
 ) SELECT
   ${sqlStr(r.title)}, ${sqlStr(r.slug)},
   (SELECT id FROM release_categories WHERE slug = ${sqlStr(catSlug)}),
@@ -231,7 +231,7 @@ INSERT INTO releases (
   ${sqlStr(r.resale_risk_level)}, ${sqlStr(r.resale_explanation)},
   ${sqlNum(r.opportunity_score)}, ${sqlNum(r.scarcity_score)}, ${sqlNum(r.resale_potential)}, ${sqlNum(r.risk_score)}, ${sqlNum(r.action_urgency)}, ${sqlStr(r.opportunity_action)},
   ${sqlNum(r.popularity_score ?? r.hype_score)}, ${sqlNum(r.momentum_score)}, ${sqlNum(r.volatility_score)},
-  ${sqlJson(r.buy_locations ?? [])}, ${sqlStr(r.hype_reason)}, ${sqlStr(r.sale_type ?? "drop")}, ${sqlStr(r.source_name ?? "TITAN Mock")}, ${sqlTs(r.source_checked_at ?? new Date().toISOString())}
+  ${sqlJson(r.buy_locations ?? [])}, ${sqlStr(r.hype_reason)}, ${sqlStr(r.sale_type ?? "drop")}, ${sqlStr(r.source_name ?? "Demo data")}, ${sqlTs(r.source_checked_at ?? new Date().toISOString())}, ${sqlStr("mock")}
 ON CONFLICT (slug) DO NOTHING;`);
   }
 

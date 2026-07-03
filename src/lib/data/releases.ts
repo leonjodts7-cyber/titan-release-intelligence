@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/client-factory";
 import { generateMockReleases } from "./mock-releases";
 import { applyDefaultDropFilters } from "@/lib/drops/filter";
 import { classifySupabaseError, setDataModeState, type DataModeReason } from "@/lib/data/mode";
+import { filterVerifiedReleases, isVerifiedRelease } from "@/lib/data/origin";
 
 const RELEASE_SELECT = `
   *,
@@ -16,25 +17,37 @@ const RELEASE_SELECT = `
   venues(name, capacity)
 `;
 
-function mockFallback(filters: ReleaseFilters, reason: DataModeReason, message?: string): Release[] {
-  if (reason === "live") reason = "query_error";
+function demoMockReleases(filters: ReleaseFilters, reason: DataModeReason, message?: string): Release[] {
   setDataModeState({ mode: "demo", reason, message });
-  return applyDefaultDropFilters(filterMockReleases(getMockReleases(), filters), {
+  const mock = generateMockReleases().map((r) => ({ ...r, data_origin: "mock" as const }));
+  return applyDefaultDropFilters(filterLocalReleases(mock, filters), {
     includePast: filters.includePast,
   });
 }
 
+function filterLocalReleases(releases: Release[], filters: ReleaseFilters): Release[] {
+  let filtered = [...releases];
+  if (filters.priority) filtered = filtered.filter((r) => r.priority_level === filters.priority);
+  if (filters.category) filtered = filtered.filter((r) => r.release_categories?.slug === filters.category);
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    filtered = filtered.filter((r) => r.title.toLowerCase().includes(q));
+  }
+  if (filters.limit) filtered = filtered.slice(0, filters.limit);
+  return filtered;
+}
+
 export async function getReleases(filters: ReleaseFilters = {}): Promise<Release[]> {
   if (!isSupabaseConfigured()) {
-    return mockFallback(filters, "not_configured");
+    return demoMockReleases(filters, "not_configured");
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return mockFallback(filters, "not_configured");
+    return demoMockReleases(filters, "not_configured");
   }
 
-  let query = supabase.from("releases").select(RELEASE_SELECT);
+  let query = supabase.from("releases").select(RELEASE_SELECT).in("data_origin", ["api", "curated"]);
 
   if (filters.priority) query = query.eq("priority_level", filters.priority);
   if (filters.status) query = query.eq("status", filters.status);
@@ -62,37 +75,51 @@ export async function getReleases(filters: ReleaseFilters = {}): Promise<Release
   const { data, error } = await query;
   if (error) {
     const reason = classifySupabaseError(error.message);
-    return mockFallback(filters, reason, error.message);
+    if (reason === "schema_missing") {
+      return demoMockReleases(filters, reason, error.message);
+    }
+    setDataModeState({ mode: "live", reason: "query_error", message: error.message });
+    return [];
   }
 
-  const rows = data as Release[];
-  if (!rows?.length) {
-    return mockFallback(filters, "empty");
-  }
-
+  const rows = filterVerifiedReleases((data as Release[]) ?? []);
   setDataModeState({ mode: "live", reason: "live" });
-  return applyDefaultDropFilters(filterMockReleases(rows, filters), {
+  return applyDefaultDropFilters(filterLocalReleases(rows, filters), {
     includePast: filters.includePast,
   });
 }
 
 export async function getReleaseById(id: string): Promise<Release | null> {
+  if (!isSupabaseConfigured()) {
+    setDataModeState({ mode: "demo", reason: "not_configured" });
+    return generateMockReleases().find((r) => r.id === id) ?? null;
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) {
     setDataModeState({ mode: "demo", reason: "not_configured" });
-    return getMockReleases().find((r) => r.id === id) ?? null;
+    return null;
   }
 
   const { data, error } = await supabase
     .from("releases")
     .select(RELEASE_SELECT)
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     const reason = classifySupabaseError(error.message);
-    setDataModeState({ mode: "demo", reason, message: error.message });
-    return getMockReleases().find((r) => r.id === id) ?? null;
+    if (reason === "schema_missing") {
+      setDataModeState({ mode: "demo", reason, message: error.message });
+      return generateMockReleases().find((r) => r.id === id) ?? null;
+    }
+    setDataModeState({ mode: "live", reason: "query_error", message: error.message });
+    return null;
+  }
+
+  if (!data || !isVerifiedRelease(data as Release)) {
+    setDataModeState({ mode: "live", reason: "live" });
+    return null;
   }
 
   setDataModeState({ mode: "live", reason: "live" });
@@ -100,55 +127,44 @@ export async function getReleaseById(id: string): Promise<Release | null> {
 }
 
 export async function getReleaseBySlug(slug: string): Promise<Release | null> {
-  const supabase = getSupabaseClient();
-  if (!supabase) {
+  if (!isSupabaseConfigured()) {
     setDataModeState({ mode: "demo", reason: "not_configured" });
-    return getMockReleases().find((r) => r.slug === slug) ?? null;
+    return generateMockReleases().find((r) => r.slug === slug) ?? null;
   }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
 
   const { data, error } = await supabase
     .from("releases")
     .select(RELEASE_SELECT)
     .eq("slug", slug)
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    const reason = classifySupabaseError(error.message);
-    setDataModeState({ mode: "demo", reason, message: error.message });
-    return getMockReleases().find((r) => r.slug === slug) ?? null;
-  }
-
+  if (error || !data || !isVerifiedRelease(data as Release)) return null;
   setDataModeState({ mode: "live", reason: "live" });
   return data as Release;
 }
 
-let _mockCache: Release[] | null = null;
-
-export function invalidateMockCache(): void {
-  _mockCache = null;
-}
-
 export function getMockReleases(): Release[] {
-  if (!_mockCache) _mockCache = generateMockReleases();
-  return _mockCache;
+  return generateMockReleases().map((r) => ({ ...r, data_origin: "mock" as const }));
 }
 
-function filterMockReleases(releases: Release[], filters: ReleaseFilters): Release[] {
-  let filtered = [...releases];
-  if (filters.priority) filtered = filtered.filter((r) => r.priority_level === filters.priority);
-  if (filters.category) filtered = filtered.filter((r) => r.release_categories?.slug === filters.category);
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    filtered = filtered.filter((r) => r.title.toLowerCase().includes(q));
-  }
-  if (filters.limit) filtered = filtered.slice(0, filters.limit);
-  return filtered;
-}
+/** No-op in v9 — demo mocks are stateless per request. */
+export function invalidateMockCache(): void {}
 
-export async function countLiveReleases(): Promise<number | null> {
+export async function countVerifiedReleases(): Promise<number | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
-  const { count, error } = await supabase.from("releases").select("id", { count: "exact", head: true });
+  const { count, error } = await supabase
+    .from("releases")
+    .select("id", { count: "exact", head: true })
+    .in("data_origin", ["api", "curated"]);
   if (error) return null;
   return count ?? 0;
+}
+
+/** @deprecated use countVerifiedReleases */
+export async function countLiveReleases(): Promise<number | null> {
+  return countVerifiedReleases();
 }
