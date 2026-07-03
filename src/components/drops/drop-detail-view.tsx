@@ -6,7 +6,8 @@ import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { getDropMeta } from "@/lib/drop";
 import { formatDrop, formatRelative } from "@/lib/time";
 import { formatEur } from "@/lib/money";
-import { Badge, tierBadgeLabel } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import { whyTierLine, tierShortLabel } from "@/lib/tiers";
 import { DropCountdown } from "@/components/drops/drop-countdown";
 import { DropDetailDrawer } from "@/components/drops/drop-detail-drawer";
 import { t } from "@/lib/i18n";
@@ -42,9 +43,13 @@ export function DropDetailView({
             </div>
           </div>
           {release.opportunity_action && (
-            <Badge variant="tier" label={tierBadgeLabel(release.opportunity_action)} />
+            <div className="text-right shrink-0">
+              <Badge variant="tier" label={tierShortLabel(release.opportunity_action)} className="text-sm px-3 py-1" />
+              <p className="text-[10px] text-titan-muted mt-1 font-mono">Score {Math.round(release.opportunity_score)}</p>
+            </div>
           )}
         </div>
+        <p className="text-xs text-zinc-400 mt-3">{whyTierLine(release)}</p>
         {checked && release.source_name && (
           <p className="text-[10px] text-titan-muted mt-3">
             {t("dropDetail.sourceFreshness", { source: release.source_name, when: checked })}

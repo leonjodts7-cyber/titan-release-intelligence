@@ -8,6 +8,7 @@ import type { SourceAdapter, ScanJob } from "@/types";
 import { IntelStat } from "@/components/intelligence/intel-stat";
 import { t } from "@/lib/i18n";
 import { cn, formatDate } from "@/lib/utils";
+import { RefreshIngestButton } from "@/app/dashboard/systeem/refresh-ingest-button";
 
 const TABS = [
   { id: "monitoring", labelKey: "systeem.tabMonitoring", href: "/dashboard/systeem" },
@@ -20,10 +21,12 @@ function SysteemTabs({
   monitoring,
   sources,
   scans,
+  health,
 }: {
   monitoring: MonitoringSnapshot;
   sources: SourceAdapter[];
   scans: ScanJob[];
+  health?: { mode: string; database: { reachable: boolean; releaseCount: number | null } };
 }) {
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "monitoring";
@@ -48,14 +51,23 @@ function SysteemTabs({
       {tab === "monitoring" && (
         <div className="space-y-4">
           <div className={monitoring.pipeline_healthy ? "intel-card border-emerald-500/20" : "intel-card border-red-500/30"}>
-            <p className="text-xs">
-              Pipeline: {monitoring.pipeline_healthy ? "Gezond" : "Verstoord"}
-              {monitoring.last_ingest_at && (
-                <span className="text-titan-muted ml-2">
-                  · {t("today.lastIngest", { when: formatDate(monitoring.last_ingest_at) })}
-                </span>
-              )}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs">
+                Pipeline: {monitoring.pipeline_healthy ? "Gezond" : "Verstoord"}
+                {health && (
+                  <span className="text-titan-muted ml-2">
+                    · {health.mode === "live" ? "Live data" : "Demo data"}
+                    {health.database.releaseCount != null && ` · ${health.database.releaseCount} releases`}
+                  </span>
+                )}
+                {monitoring.last_ingest_at && (
+                  <span className="text-titan-muted ml-2">
+                    · {t("today.lastIngest", { when: formatDate(monitoring.last_ingest_at) })}
+                  </span>
+                )}
+              </p>
+              <RefreshIngestButton />
+            </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
             <IntelStat label="Releases" value={monitoring.releases_tracked} />
@@ -164,6 +176,7 @@ export function SysteemClient(props: {
   monitoring: MonitoringSnapshot;
   sources: SourceAdapter[];
   scans: ScanJob[];
+  health?: { mode: string; database: { reachable: boolean; releaseCount: number | null } };
 }) {
   return (
     <Suspense>

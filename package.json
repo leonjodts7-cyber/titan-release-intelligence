@@ -9,6 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "ingest": "curl -s -X POST http://localhost:3000/api/ingest -H \"Authorization: Bearer $CRON_SECRET\" || curl -s -X POST http://localhost:3000/api/admin/refresh-ingest",
+    "setup:sql": "node scripts/generate-combined-setup.mjs",
     "seed": "tsx scripts/seed.ts",
     "assign-orphan-data": "tsx scripts/assign-orphan-data.ts"
   },

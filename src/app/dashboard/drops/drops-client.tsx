@@ -5,13 +5,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { filterOpportunities } from "@/lib/data/enrich-releases";
 import { sortByDropTime, getDropMeta, type DropCategory } from "@/lib/drop";
-import { formatDrop } from "@/lib/time";
-import { DropCard } from "@/components/drops/drop-card";
+import { MonthCalendar } from "@/components/drops/month-calendar";
 import { OpportunitiesTable } from "@/components/opportunities/opportunities-table";
+import { groupReleasesByTier } from "@/lib/tiers";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "list" | "calendar";
+
+const TIER_TIP_KEY: Record<string, string> = {
+  TOP: "tiers.tip.TOP",
+  "MUST WATCH": "tiers.tip.MUST_WATCH",
+  HIGH: "tiers.tip.HIGH",
+  WATCH: "tiers.tip.WATCH",
+  BASIS: "tiers.tip.BASIS",
+};
 
 const CATEGORY_MAP: Record<string, DropCategory | undefined> = {
   sneakers: "sneakers",
@@ -34,6 +42,7 @@ export function DropsClient({
   const [category, setCategory] = useState<string>("");
   const [confirmedOnly, setConfirmedOnly] = useState(false);
   const [tier, setTier] = useState("");
+  const [groupByTier, setGroupByTier] = useState(true);
 
   const filtered = useMemo(() => {
     let items = filterOpportunities(initialReleases, {
@@ -53,17 +62,7 @@ export function DropsClient({
     return sortByDropTime(items);
   }, [initialReleases, category, confirmedOnly, tier]);
 
-  const byDay = useMemo(() => {
-    const map = new Map<string, EnrichedRelease[]>();
-    for (const r of filtered) {
-      const meta = getDropMeta(r);
-      const key = meta.dropAt ? formatDrop({ ...meta, dropTimeConfirmed: true }).split("·")[0]?.trim() ?? "onbekend" : "onbekend";
-      const list = map.get(key) ?? [];
-      list.push(r);
-      map.set(key, list);
-    }
-    return [...map.entries()];
-  }, [filtered]);
+  const tierGrouped = useMemo(() => groupReleasesByTier(filtered), [filtered]);
 
   return (
     <div className="space-y-4">
@@ -106,7 +105,21 @@ export function DropsClient({
           <option value="TOP OPPORTUNITY">TOP</option>
           <option value="MUST WATCH">MUST WATCH</option>
           <option value="HIGH PRIORITY">HIGH</option>
+          <option value="WATCH">WATCH</option>
+          <option value="IGNORE">BASIS</option>
         </select>
+
+        {view === "list" && (
+          <label className="flex items-center gap-1.5 text-xs text-titan-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={groupByTier}
+              onChange={(e) => setGroupByTier(e.target.checked)}
+              className="rounded border-titan-border"
+            />
+            {t("drops.groupByTier")}
+          </label>
+        )}
 
         <label className="flex items-center gap-1.5 text-xs text-titan-muted cursor-pointer">
           <input
@@ -135,20 +148,22 @@ export function DropsClient({
       </div>
 
       {view === "list" ? (
-        <OpportunitiesTable initialReleases={filtered} />
+        groupByTier ? (
+          <div className="space-y-6">
+            {tierGrouped.map(([tierName, items]) => (
+              <section key={tierName}>
+                <h3 className="intel-section-title mb-2" title={t(TIER_TIP_KEY[tierName] ?? "tiers.tip.BASIS")}>
+                  {tierName}
+                </h3>
+                <OpportunitiesTable initialReleases={items} compact />
+              </section>
+            ))}
+          </div>
+        ) : (
+          <OpportunitiesTable initialReleases={filtered} />
+        )
       ) : (
-        <div className="space-y-4">
-          {byDay.map(([day, items]) => (
-            <section key={day}>
-              <h3 className="intel-section-title mb-2 capitalize">{day}</h3>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((r) => (
-                  <DropCard key={r.id} release={r} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        <MonthCalendar releases={filtered} />
       )}
     </div>
   );

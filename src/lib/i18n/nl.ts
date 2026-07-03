@@ -104,7 +104,14 @@ export const nl = {
     HIGH_PRIORITY: "HIGH",
     PREPARE: "WATCH",
     WATCH: "WATCH",
-    IGNORE: "IGNORE",
+    IGNORE: "BASIS",
+    tip: {
+      TOP: "Absolute topkans — hoogste score en urgentie in de komende periode.",
+      MUST_WATCH: "Zeer sterke kans — beperkte supply en hoge vraag.",
+      HIGH: "Bovengemiddeld winstpotentieel — voorbereiden loont.",
+      WATCH: "Interessant om te volgen — monitor voor updates.",
+      BASIS: "Standaard monitoring — geen prioritaire actie nodig.",
+    },
   },
   common: {
     close: "Sluiten",
@@ -134,6 +141,8 @@ export const nl = {
     lastScan: "Laatste scan {when}",
     lastIngest: "Laatste ingest {when}",
     noScan: "Nog geen scan",
+    noBestWeek: "Geen TOP/MUST WATCH drops deze week.",
+    laterYear: "Verderop dit jaar",
   },
   drops: {
     title: "Drops",
@@ -148,6 +157,7 @@ export const nl = {
     allTiers: "Alle tiers",
     confirmedOnly: "Alleen bevestigde tijden",
     showPast: "Toon afgelopen",
+    groupByTier: "Groepeer op tier",
     colDrop: "Drop",
     moreColumns: "Meer kolommen",
     fewerColumns: "Minder kolommen",
@@ -212,6 +222,12 @@ export const nl = {
     online: "Online",
     offline: "Offline",
     noErrors: "Geen fouten in de laatste 24 uur",
+    refreshNow: "Ververs nu",
+    refreshDone: "Ingest voltooid — {found} items gevonden",
+  },
+  freshness: {
+    title: "Laatste dataverversing",
+    updated: "Bijgewerkt {when}",
   },
   instellingen: {
     title: "Instellingen",
@@ -332,6 +348,10 @@ export const nl = {
     title: "Kalender",
     emptyToday: "Geen releases vandaag — bekijk deze week",
     thisWeek: "Deze week",
+    today: "Vandaag",
+    weekView: "Week",
+    monthView: "Maand",
+    moreOnDay: "+{count} meer",
   },
   watchlists: {
     title: "Volglijsten",

@@ -5,6 +5,7 @@ import { DemoModeBanner } from "@/components/layout/demo-banner";
 import { DemoModePill } from "@/components/layout/demo-pill";
 import { GlobalSearch } from "@/components/intelligence/global-search";
 import { LiveActivityPanel } from "@/components/intelligence/live-activity-panel";
+import { FreshnessIndicator } from "@/components/layout/freshness-indicator";
 import { CommandCenterBar, type CommandCenterMetrics } from "@/components/intelligence/command-center-bar";
 import type { ActivityFeedItem } from "@/lib/data/activity-feed";
 import { useState } from "react";
@@ -31,6 +32,7 @@ export function IntelligenceLayout({ children, activityFeed, showFeed = true, co
           <div className="flex-1 flex justify-center lg:justify-start lg:ml-0">
             <GlobalSearch />
           </div>
+          <FreshnessIndicator />
           <DemoModePill />
         </header>
         <DemoModeBanner />

@@ -157,9 +157,8 @@ export function sortOpportunityReleases(
   }
 }
 
-import { nl } from "@/lib/i18n/nl";
+import { tierShortLabel } from "@/lib/tiers";
 
 export function tierLabel(action: OpportunityAction): string {
-  const key = action.replace(/ /g, "_") as keyof typeof nl.tiers;
-  return nl.tiers[key] ?? action;
+  return tierShortLabel(action);
 }

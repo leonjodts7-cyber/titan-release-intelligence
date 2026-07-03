@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getReleaseById, getReleases } from "@/lib/data/releases";
+import { getReleaseById, getReleaseBySlug, getReleases } from "@/lib/data/releases";
 import { enrichRelease } from "@/lib/data/enrich-releases";
 import { IntelligenceLayout } from "@/components/layout/intelligence-layout";
 import { DropDetailView } from "@/components/drops/drop-detail-view";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DropDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const raw = await getReleaseById(id);
+  const raw = (await getReleaseById(id)) ?? (await getReleaseBySlug(id));
   if (!raw) notFound();
 
   const release = enrichRelease(raw);

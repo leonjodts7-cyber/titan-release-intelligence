@@ -47,9 +47,13 @@ export function NotificationsClient({ initial }: { initial: Notification[] }) {
                 <Bell className={cn("w-3.5 h-3.5 mt-0.5", isUnread ? "text-titan-accent" : "text-zinc-600")} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    {n.release_id ? (
+                    {n.release_id || (n.metadata?.release_slug as string) ? (
                       <Link
-                        href={`/dashboard/drops/${n.release_id}`}
+                        href={
+                          n.metadata?.release_slug
+                            ? `/dashboard/drops/${n.metadata.release_slug}`
+                            : `/dashboard/drops/${n.release_id}`
+                        }
                         className="font-medium text-xs truncate hover:text-titan-accent"
                       >
                         {n.title}

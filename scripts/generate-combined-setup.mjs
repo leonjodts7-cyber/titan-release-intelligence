@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Generates supabase/combined_setup.sql from migrations (000, 002..latest).
- * Skips 001_schema.sql (overlaps with 000).
+ * Generates supabase/combined_setup.sql from migrations + full mock seed.
  */
-import { readFileSync, writeFileSync, readdirSync } from "fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const migDir = join(root, "supabase/migrations");
@@ -34,7 +34,6 @@ function makePoliciesIdempotent(sql) {
 function patchSeed003(sql) {
   let out = sql;
 
-  // cities: no unique constraint in base schema — add index + conflict target
   out = out.replace(
     /INSERT INTO cities \(name, country_id\) VALUES/,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_cities_name_country ON cities(name, country_id);\n\nINSERT INTO cities (name, country_id) VALUES`
@@ -44,76 +43,52 @@ function patchSeed003(sql) {
     `ON CONFLICT (name, country_id) DO NOTHING;\n\n-- Venues`
   );
 
-  // release_updates: avoid duplicate seed rows
+  // Remove legacy sample releases — full mock seed appended at end
   out = out.replace(
-    /-- Sample release updates\nINSERT INTO release_updates/,
-    `-- Sample release updates
-INSERT INTO release_updates (release_id, update_type, old_value, new_value, summary, importance_score)
-SELECT v.release_id, v.update_type, v.old_value, v.new_value, v.summary, v.importance_score
-FROM (VALUES
-  (
-    (SELECT id FROM releases WHERE slug = 'coldplay-europe-tour-2026'),
-    'presale_added'::update_type, NULL::TEXT, (NOW() + INTERVAL '2 days')::TEXT,
-    'Presale date announced for Coldplay Europe Tour', 85::NUMERIC
-  ),
-  (
-    (SELECT id FROM releases WHERE slug = 'taylor-swift-stadium-show-london'),
-    'date_changed'::update_type, '2026-08-15', '2026-08-22',
-    'London show date moved by one week', 90::NUMERIC
-  ),
-  (
-    (SELECT id FROM releases WHERE slug = 'nike-mercurial-limited-drop'),
-    'official_link_added'::update_type, NULL::TEXT, 'https://www.nike.com/launch/t/mercurial-limited',
-    'Official SNKRS product page now live', 75::NUMERIC
-  )
-) AS v(release_id, update_type, old_value, new_value, summary, importance_score)
-WHERE v.release_id IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM release_updates ru
-    WHERE ru.release_id = v.release_id AND ru.summary = v.summary
+    /-- Sample Releases[\s\S]*?ON CONFLICT \(slug\) DO NOTHING;\n\n/,
+    "-- Sample releases: see full_mock_seed section at end of file\n\n"
   );
 
--- (original release_updates block replaced for idempotency)
--- INSERT INTO release_updates`
+  out = out.replace(
+    /-- Sample release updates[\s\S]*?WHERE ru\.release_id = v\.release_id AND ru\.summary = v\.summary\n  \);\n\n/,
+    ""
   );
 
-  // Remove old release_updates INSERT block through semicolon before release_scores
   out = out.replace(
-    /-- \(original release_updates block replaced for idempotency\)\n-- INSERT INTO release_updates[\s\S]*?;\n\n-- Sample release scores/,
-    `-- Sample release scores`
+    /-- Sample release scores[\s\S]*?WHERE rs\.release_id = v\.release_id AND rs\.short_summary = v\.short_summary\n  \);\n?/,
+    ""
   );
 
-  // release_scores: idempotent insert
+  // Fallback if patch above didn't match (unpatched 003)
   out = out.replace(
-    /-- Sample release scores\nINSERT INTO release_scores[\s\S]*?\);(\s*\n)/,
-    `-- Sample release scores
-INSERT INTO release_scores (release_id, hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score, priority_level, short_summary, recommended_action, risk_notes)
-SELECT v.release_id, v.hype_score, v.demand_score, v.urgency_score, v.sellout_probability, v.resale_interest_score, v.confidence_score, v.priority_level, v.short_summary, v.recommended_action, v.risk_notes
-FROM (VALUES
-  (
-    (SELECT id FROM releases WHERE slug = 'coldplay-europe-tour-2026'),
-    92::NUMERIC, 95::NUMERIC, 78::NUMERIC, 98::NUMERIC, 90::NUMERIC, 88::NUMERIC, 'EXTREME'::priority_level,
-    'Global superstar stadium tour with extreme demand expected',
-    'Register for presale, prepare multiple devices, check fan club access',
-    'High bot activity expected on Ticketmaster'
-  ),
-  (
-    (SELECT id FROM releases WHERE slug = 'super-bowl-lx'),
-    99::NUMERIC, 99::NUMERIC, 40::NUMERIC, 99::NUMERIC, 98::NUMERIC, 95::NUMERIC, 'EXTREME'::priority_level,
-    'Most demanded sporting event globally - lottery only',
-    'Enter NFL lottery immediately, monitor official resale portal',
-    'Scam sites common - only use nfl.com'
-  )
-) AS v(release_id, hype_score, demand_score, urgency_score, sellout_probability, resale_interest_score, confidence_score, priority_level, short_summary, recommended_action, risk_notes)
-WHERE v.release_id IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM release_scores rs
-    WHERE rs.release_id = v.release_id AND rs.short_summary = v.short_summary
-  );
-$1`
+    /-- Sample Releases[\s\S]*?ON CONFLICT \(slug\) DO NOTHING;\n\n-- Sample release updates[\s\S]*?\);\n\n-- Sample release scores[\s\S]*?\);\n?/,
+    "-- Sample releases: see full_mock_seed section at end of file\n\n"
   );
 
   return out;
+}
+
+function validateSql(sql) {
+  const errors = [];
+  const dollarBlocks = (sql.match(/\$\$/g) || []).length;
+  if (dollarBlocks % 2 !== 0) errors.push("Unbalanced $$ blocks");
+
+  let depth = 0;
+  for (const ch of sql) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (depth < 0) errors.push("Unbalanced parentheses");
+  }
+  if (depth !== 0) errors.push(`Unclosed parentheses (depth ${depth})`);
+
+  if (!sql.includes("CREATE TABLE IF NOT EXISTS releases")) {
+    errors.push("Missing releases table definition");
+  }
+  if (!sql.includes("VERIFICATION")) {
+    errors.push("Missing verification query");
+  }
+
+  return errors;
 }
 
 const verification = `
@@ -154,26 +129,37 @@ ORDER BY table_name;
 let combined = `-- TITAN Release Intelligence — Combined setup script
 -- Generated from migrations: ${ordered.join(", ")}
 -- Skipped: 001_schema.sql (overlaps with 000_base_schema.sql)
+-- Includes: full mock seed (${new Date().toISOString().slice(0, 10)})
 --
 -- Paste this entire file into the Supabase SQL Editor and run once.
--- Safe to re-run: uses IF NOT EXISTS, DROP POLICY IF EXISTS, ON CONFLICT DO NOTHING.
---
--- Generated: ${new Date().toISOString().slice(0, 10)}
+-- Safe to re-run: IF NOT EXISTS, DROP POLICY IF EXISTS, ON CONFLICT DO NOTHING.
 `;
 
 for (const file of ordered) {
   let sql = readFileSync(join(migDir, file), "utf8");
-  if (file === "002_rls.sql") {
-    sql = makePoliciesIdempotent(sql);
-  }
-  if (file === "003_seed.sql") {
-    sql = patchSeed003(sql);
-  }
+  if (file === "002_rls.sql") sql = makePoliciesIdempotent(sql);
+  if (file === "003_seed.sql") sql = patchSeed003(sql);
   combined += header(file) + sql.trim() + "\n";
+}
+
+// Append full mock seed
+const mockSeedPath = join(root, "supabase/.mock-seed.sql");
+execSync(`npx tsx scripts/generate-mock-seed-sql.ts "${mockSeedPath}"`, {
+  cwd: root,
+  stdio: "inherit",
+});
+if (existsSync(mockSeedPath)) {
+  combined += header("full_mock_seed.sql") + readFileSync(mockSeedPath, "utf8").trim() + "\n";
 }
 
 combined += verification;
 
+const validationErrors = validateSql(combined);
+if (validationErrors.length) {
+  console.error("SQL validation failed:", validationErrors.join("; "));
+  process.exit(1);
+}
+
 const outPath = join(root, "supabase/combined_setup.sql");
 writeFileSync(outPath, combined, "utf8");
-console.log(`Wrote ${outPath} (${combined.split("\n").length} lines) from ${ordered.length} migrations`);
+console.log(`Wrote ${outPath} (${combined.split("\n").length} lines)`);

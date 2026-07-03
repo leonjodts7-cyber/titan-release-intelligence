@@ -1,9 +1,14 @@
 import { getReleases } from "@/lib/data/releases";
 import { getSourceAdapters, getScanJobs } from "@/lib/data/sources";
 import { getActivityFeed } from "@/lib/data/activity-feed";
-import { enrichReleases, sortByOpportunity } from "@/lib/data/enrich-releases";
-import { sortByDropTime, isDropTodayOrTomorrow, getDropAt } from "@/lib/drop";
-import { getLastIngestAt } from "@/lib/sources/ingest";
+import { enrichReleases } from "@/lib/data/enrich-releases";
+import { sortByDropTime } from "@/lib/drop";
+import {
+  filterTodayTomorrow,
+  filterUpcoming,
+  topTierLaterYear,
+  topTierWithinWeek,
+} from "@/lib/drops/period-filters";
 import { IntelligenceLayout } from "@/components/layout/intelligence-layout";
 import { DropCard } from "@/components/drops/drop-card";
 import { LiveActivityPanel } from "@/components/intelligence/live-activity-panel";
@@ -11,6 +16,7 @@ import { t } from "@/lib/i18n";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { nl } from "date-fns/locale";
+import { getLastIngestAt } from "@/lib/sources/ingest";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +29,11 @@ export default async function VandaagPage() {
   ]);
 
   const releases = enrichReleases(raw);
-  const upcoming = sortByDropTime(releases).filter((r) => {
-    const at = getDropAt(r);
-    return at && new Date(at).getTime() > Date.now() - 3600_000;
-  });
-
-  const todayTomorrow = upcoming.filter((r) => isDropTodayOrTomorrow(getDropAt(r)));
-  const bestWeek = sortByOpportunity(releases)
-    .filter((r) => r.opportunity_action === "TOP OPPORTUNITY" || r.opportunity_action === "MUST WATCH")
-    .slice(0, 3);
+  const now = new Date();
+  const upcoming = sortByDropTime(filterUpcoming(releases, now));
+  const todayTomorrow = filterTodayTomorrow(upcoming, now);
+  const bestWeek = topTierWithinWeek(releases, 3, now);
+  const laterYear = topTierLaterYear(releases, 3, now);
 
   const onlineSources = sources.filter((s) => s.enabled && !s.last_error).length;
   const lastScan = scans[0];
@@ -65,12 +67,27 @@ export default async function VandaagPage() {
               {t("terms.viewAll")}
             </Link>
           </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {bestWeek.map((r) => (
-              <DropCard key={r.id} release={r} compact />
-            ))}
-          </div>
+          {bestWeek.length === 0 ? (
+            <p className="text-xs text-titan-muted">{t("today.noBestWeek")}</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-3">
+              {bestWeek.map((r) => (
+                <DropCard key={r.id} release={r} compact />
+              ))}
+            </div>
+          )}
         </section>
+
+        {laterYear.length > 0 && bestWeek.length < 3 && (
+          <section>
+            <h2 className="intel-section-title mb-2">{t("today.laterYear")}</h2>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {laterYear.map((r) => (
+                <DropCard key={r.id} release={r} compact />
+              ))}
+            </div>
+          </section>
+        )}
 
         <div className="flex flex-wrap items-center gap-3 text-[10px] text-titan-muted font-mono px-3 py-2 rounded-lg border border-titan-border bg-titan-surface">
           <span>{t("today.systemStatus", { online: onlineSources, total: sources.length })}</span>

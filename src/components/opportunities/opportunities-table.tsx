@@ -19,13 +19,20 @@ import { DropCountdown } from "@/components/drops/drop-countdown";
 import { Badge, tierBadgeLabel } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { t } from "@/lib/i18n";
+import { tierShortLabel, TIER_BORDER } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
 
 const TICKET_SLUGS = new Set([
   "concert-tickets", "sport-tickets", "super-bowl", "champions-league", "world-cup", "festivals",
 ]);
 
-export function OpportunitiesTable({ initialReleases }: { initialReleases: EnrichedRelease[] }) {
+export function OpportunitiesTable({
+  initialReleases,
+  compact = false,
+}: {
+  initialReleases: EnrichedRelease[];
+  compact?: boolean;
+}) {
   const [filters, setFilters] = useState<OpportunityFilters>({ sort: "opportunity" });
   const [showTicketProfit, setShowTicketProfit] = useState(false);
   const [sortKey, setSortKey] = useState<OpportunitySortKey>("opportunity");
@@ -61,6 +68,7 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
 
   return (
     <div className="space-y-4">
+      {!compact && (
       <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-titan-surface border border-titan-border">
         <input
           type="text"
@@ -105,8 +113,9 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
           {showExtraCols ? t("drops.fewerColumns") : t("drops.moreColumns")}
         </button>
       </div>
+      )}
 
-      {isTicketView && !showTicketProfit && (
+      {!compact && isTicketView && !showTicketProfit && (
         <p className="text-caption text-titan-muted px-1">{t("ticket.disclaimer")}</p>
       )}
 
@@ -143,8 +152,15 @@ export function OpportunitiesTable({ initialReleases }: { initialReleases: Enric
           <tbody>
             {ranked.map((r, i) => {
               const hideProfit = r.release_type === "ticket" && !showTicketProfit;
+              const tier = tierShortLabel(r.opportunity_action);
               return (
-                <tr key={r.id} className="border-t border-titan-border hover:bg-white/[0.02]">
+                <tr
+                  key={r.id}
+                  className={cn(
+                    "border-t border-titan-border hover:bg-white/[0.02] border-l-2",
+                    TIER_BORDER[tier] ?? "border-l-transparent"
+                  )}
+                >
                   {visibleColumns.map((col) => {
                     if (col.id === "release") {
                       return (

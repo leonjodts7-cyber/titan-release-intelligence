@@ -6,7 +6,8 @@ const TIER_STYLES: Record<string, string> = {
   "MUST WATCH": "bg-red-500/15 text-red-400 border-red-500/30",
   HIGH: "bg-orange-500/15 text-orange-400 border-orange-500/30",
   WATCH: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  IGNORE: "bg-zinc-500/10 text-zinc-500 border-zinc-600/30",
+  IGNORE: "bg-zinc-500/10 text-zinc-400 border-zinc-600/30",
+  BASIS: "bg-zinc-500/10 text-zinc-400 border-zinc-600/30",
 };
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -63,7 +64,7 @@ export function tierBadgeLabel(action: OpportunityAction): string {
     PRIORITY: "HIGH",
     PREPARE: "WATCH",
     WATCH: "WATCH",
-    IGNORE: "IGNORE",
+    IGNORE: "BASIS",
   };
-  return map[action] ?? action;
+  return map[action] ?? "BASIS";
 }
