@@ -22,11 +22,16 @@ describe("category taxonomy", () => {
     }
   });
 
-  it("Mercurial is Schoenen > Voetbalschoenen", () => {
+  it("Travis Scott Houston is Tickets > Concerten", () => {
     const mercurial = releases.find((r) => r.slug === "mercurial-superfly-elite");
     expect(mercurial).toBeDefined();
     expect(classifyRelease(mercurial!).main).toBe("schoenen");
     expect(classifyRelease(mercurial!).sub).toBe("football-boots");
+
+    const travis = releases.find((r) => r.slug === "travis-scott-houston-sep-2026");
+    expect(travis).toBeDefined();
+    expect(classifyRelease(travis!).main).toBe("tickets");
+    expect(classifyRelease(travis!).sub).toBe("concerts");
   });
 
   it("hub subcategory counts include all items", () => {

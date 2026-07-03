@@ -7,7 +7,7 @@ import {
   filterTodayTomorrow,
   filterUpcoming,
   topTierLaterYear,
-  topTierWithinWeek,
+  getBestWeekSection,
 } from "@/lib/drops/period-filters";
 import { IntelligenceLayout } from "@/components/layout/intelligence-layout";
 import { DropCard } from "@/components/drops/drop-card";
@@ -35,9 +35,15 @@ export default async function VandaagPage() {
   const now = new Date();
   const upcoming = sortByDropTime(filterUpcoming(releases, now));
   const todayTomorrow = filterTodayTomorrow(upcoming, now);
-  const todayIds = new Set(todayTomorrow.map((r) => r.id));
-  const bestWeek = topTierWithinWeek(releases, 3, now).filter((r) => !todayIds.has(r.id));
-  const laterYear = topTierLaterYear(releases, 3, now).filter((r) => !todayIds.has(r.id));
+  const { items: bestWeek, emptyReason: weekEmptyReason } = getBestWeekSection(
+    releases,
+    todayTomorrow,
+    3,
+    now
+  );
+  const laterYear = topTierLaterYear(releases, 3, now).filter(
+    (r) => !new Set(todayTomorrow.map((x) => x.id)).has(r.id)
+  );
 
   const hubMains: MainCategory[] = ["schoenen", "tickets", "kaarten"];
   const categoryTiles = hubMains.map((main) => {
@@ -119,7 +125,11 @@ export default async function VandaagPage() {
             </Link>
           </div>
           {bestWeek.length === 0 ? (
-            <p className="text-xs text-titan-muted">{t("today.noBestWeek")}</p>
+            <p className="text-xs text-titan-muted">
+              {weekEmptyReason === "all_above"
+                ? t("today.weekAllAbove")
+                : t("today.noBestWeek")}
+            </p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-3">
               {bestWeek.map((r) => (

@@ -61,6 +61,7 @@ export interface Release {
   drop_event_type?: "preorder" | "release" | "presale" | "general_sale";
   main_category?: MainCategory | null;
   sub_category?: string | null;
+  event_date?: string | null;
   buy_locations?: BuyLocation[];
   hype_reason?: string | null;
   sale_type?: SaleType;

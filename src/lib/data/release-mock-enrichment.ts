@@ -13,10 +13,11 @@ const KNALLER_SLUGS = new Set([
 ]);
 
 function saleTypeFor(release: Release): SaleType {
-  const sub = classifyRelease(release).sub;
+  const main = classifyRelease(release).main;
   if (release.drop_event_type === "presale") return "voorverkoop";
   if (release.drop_event_type === "preorder") return "preorder";
-  if (sub === "football-boots" || release.release_categories?.slug === "limited-sneakers") return "raffle";
+  if (main === "tickets") return release.drop_event_type === "general_sale" ? "algemene_verkoop" : "voorverkoop";
+  if (main === "schoenen") return "raffle";
   return "drop";
 }
 

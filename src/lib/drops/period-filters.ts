@@ -39,3 +39,22 @@ export function topTierLaterYear(releases: EnrichedRelease[], limit = 3, now = n
     .sort((a, b) => b.opportunity_score - a.opportunity_score)
     .slice(0, limit);
 }
+
+export type WeekSectionEmptyReason = "all_above" | "none_this_week";
+
+export function getBestWeekSection(
+  releases: EnrichedRelease[],
+  todayTomorrow: EnrichedRelease[],
+  limit = 3,
+  now = new Date()
+): { items: EnrichedRelease[]; emptyReason: WeekSectionEmptyReason | null } {
+  const todayIds = new Set(todayTomorrow.map((r) => r.id));
+  const allWeekTop = filterThisWeek(releases, now)
+    .filter((r) => r.opportunity_action === "TOP OPPORTUNITY" || r.opportunity_action === "MUST WATCH")
+    .sort((a, b) => b.opportunity_score - a.opportunity_score);
+  const items = allWeekTop.filter((r) => !todayIds.has(r.id)).slice(0, limit);
+
+  if (items.length > 0) return { items, emptyReason: null };
+  if (allWeekTop.length > 0) return { items: [], emptyReason: "all_above" };
+  return { items: [], emptyReason: "none_this_week" };
+}

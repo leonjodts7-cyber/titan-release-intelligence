@@ -18,7 +18,7 @@ async function getDashboardHref(): Promise<string> {
 
 export default async function HomePage() {
   const dashboardHref = await getDashboardHref();
-  const signInHref = isAuthEnabled() ? "/login" : "/dashboard";
+  const authOn = isAuthEnabled();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -45,21 +45,25 @@ export default async function HomePage() {
             {t("landing.title")}
           </h1>
           <p className="text-xl text-zinc-400 mb-8 leading-relaxed">{t("landing.subtitle")}</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <Link
               href={dashboardHref}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-titan-accent hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors"
             >
-              {t("landing.launch")}
+              {t("landing.openDashboard")}
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link
-              href={signInHref}
-              className="inline-flex items-center justify-center px-6 py-3 border border-titan-border hover:border-zinc-600 rounded-xl font-medium transition-colors"
-            >
-              {t("landing.signIn")}
-            </Link>
           </div>
+          {authOn && (
+            <div className="flex justify-center mt-4">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center px-6 py-3 border border-titan-border hover:border-zinc-600 rounded-xl font-medium transition-colors text-sm"
+              >
+                {t("landing.signIn")}
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 max-w-4xl w-full">

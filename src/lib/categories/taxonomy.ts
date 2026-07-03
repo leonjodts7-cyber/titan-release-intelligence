@@ -15,6 +15,7 @@ export interface MainCategoryDef {
   border: string;
   chip: string;
   accent: string;
+  dot: string;
   subcategories: SubCategoryDef[];
 }
 
@@ -26,6 +27,7 @@ export const MAIN_CATEGORIES: Record<MainCategory, MainCategoryDef> = {
     border: "border-l-violet-500",
     chip: "bg-violet-500/20 text-violet-200 border-violet-500/40",
     accent: "border-violet-500/60",
+    dot: "bg-violet-500",
     subcategories: [
       { slug: "limited-sneakers", label: "Limited Sneakers", icon: "footprints" },
       { slug: "football-boots", label: "Voetbalschoenen", icon: "soccer" },
@@ -41,6 +43,7 @@ export const MAIN_CATEGORIES: Record<MainCategory, MainCategoryDef> = {
     border: "border-l-rose-500",
     chip: "bg-rose-500/20 text-rose-200 border-rose-500/40",
     accent: "border-rose-500/60",
+    dot: "bg-rose-500",
     subcategories: [
       { slug: "concerts", label: "Concerten", icon: "music" },
       { slug: "festivals", label: "Festivals", icon: "festival" },
@@ -56,6 +59,7 @@ export const MAIN_CATEGORIES: Record<MainCategory, MainCategoryDef> = {
     border: "border-l-amber-500",
     chip: "bg-amber-500/20 text-amber-200 border-amber-500/40",
     accent: "border-amber-500/60",
+    dot: "bg-amber-500",
     subcategories: [
       { slug: "pokemon", label: "Pokémon", icon: "layers" },
       { slug: "one-piece", label: "One Piece", icon: "ship" },
@@ -72,6 +76,7 @@ export const MAIN_CATEGORIES: Record<MainCategory, MainCategoryDef> = {
     border: "border-l-slate-500",
     chip: "bg-slate-500/20 text-slate-300 border-slate-500/40",
     accent: "border-slate-500/60",
+    dot: "bg-slate-500",
     subcategories: [
       { slug: "fashion-drops", label: "Fashion Drops", icon: "shirt" },
       { slug: "gaming", label: "Gaming & consoles", icon: "gamepad" },
@@ -96,18 +101,38 @@ export function subLabel(main: MainCategory, subSlug: string): string {
 
 /** Classify a release into main + sub category. */
 export function classifyRelease(release: Release): { main: MainCategory; sub: string } {
-  if (release.main_category && release.sub_category) {
-    return {
-      main: release.main_category as MainCategory,
-      sub: release.sub_category,
-    };
-  }
-
   const slug = release.slug.toLowerCase();
   const catSlug = release.release_categories?.slug ?? "";
   const title = release.title.toLowerCase();
   const tcg = release.tcg_name?.toLowerCase() ?? "";
   const brand = release.brands?.name?.toLowerCase() ?? "";
+
+  // Tickets first — release_type is authoritative (avoids "Travis Scott" → collabs)
+  if (release.release_type === "ticket" || catSlug.includes("ticket") || catSlug === "festivals") {
+    if (catSlug === "festivals" || /tomorrowland|glastonbury|festival/i.test(title)) {
+      return { main: "tickets", sub: "festivals" };
+    }
+    if (
+      catSlug === "champions-league" ||
+      catSlug === "super-bowl" ||
+      catSlug === "football-matches" ||
+      catSlug === "world-cup" ||
+      catSlug === "premier-league" ||
+      /ucl|champions league|clásico|world cup|wk |derby|grand prix|f1 |six nations/i.test(title)
+    ) {
+      if (/super bowl|nba|nfl|nhl|indy/i.test(title)) return { main: "tickets", sub: "american-sports" };
+      if (/wimbledon|roland-garros|tennis|f1 |grand prix|tdf/i.test(title)) {
+        return { main: "tickets", sub: "tennis-other" };
+      }
+      return { main: "tickets", sub: "football" };
+    }
+    if (/super bowl|nba|nfl|nhl/i.test(title)) return { main: "tickets", sub: "american-sports" };
+    if (/wimbledon|roland-garros|f1 |monaco gp/i.test(title)) return { main: "tickets", sub: "tennis-other" };
+    if (release.artists?.name || /swift|coldplay|concert|tour|beyoncé|drake|travis scott/i.test(title)) {
+      return { main: "tickets", sub: "concerts" };
+    }
+    return { main: "tickets", sub: "concerts" };
+  }
 
   // Voetbalschoenen
   if (
@@ -126,7 +151,8 @@ export function classifyRelease(release: Release): { main: MainCategory; sub: st
   if (
     catSlug === "limited-sneakers" ||
     catSlug === "nike-drops" ||
-    /dunk|jordan|yeezy|samba|air max|sb dunk|travis|off-white/i.test(title)
+    /dunk|jordan|yeezy|samba|air max|sb dunk|off-white/i.test(title) ||
+    (/travis/i.test(title) && !/houston|concert|tour/i.test(title))
   ) {
     if (/travis|off-white|collab|x /i.test(title)) return { main: "schoenen", sub: "collabs" };
     return { main: "schoenen", sub: "limited-sneakers" };
@@ -143,34 +169,6 @@ export function classifyRelease(release: Release): { main: MainCategory; sub: st
   if (tcg === "yu-gi-oh" || /yu-gi-oh|yugioh/i.test(title)) return { main: "kaarten", sub: "yugioh" };
   if (tcg === "sports cards" || /topps|chrome|hobby box/i.test(title)) return { main: "kaarten", sub: "sports-cards" };
   if (catSlug === "tcg-collectibles" || release.tcg_name) return { main: "kaarten", sub: "pokemon" };
-
-  // Tickets
-  if (release.release_type === "ticket" || catSlug.includes("ticket") || catSlug === "festivals") {
-    if (catSlug === "festivals" || /tomorrowland|glastonbury|festival/i.test(title)) {
-      return { main: "tickets", sub: "festivals" };
-    }
-    if (
-      catSlug === "champions-league" ||
-      catSlug === "super-bowl" ||
-      catSlug === "football-matches" ||
-      catSlug === "world-cup" ||
-      catSlug === "premier-league" ||
-      /ucl|champions league|clásico|world cup|wk |derby|grand prix|f1 |six nations/i.test(title)
-    ) {
-      if (/super bowl|nba|nfl|nhl|indy/i.test(title)) return { main: "tickets", sub: "american-sports" };
-      if (/wimbledon|roland-garros|tennis|f1 |grand prix|tdf/i.test(title)) {
-        return { main: "tickets", sub: "tennis-other" };
-      }
-      if (/super bowl|nba finals/i.test(title)) return { main: "tickets", sub: "american-sports" };
-      return { main: "tickets", sub: "football" };
-    }
-    if (/super bowl|nba|nfl|nhl/i.test(title)) return { main: "tickets", sub: "american-sports" };
-    if (/wimbledon|roland-garros|f1 |monaco gp/i.test(title)) return { main: "tickets", sub: "tennis-other" };
-    if (release.artists?.name || /swift|coldplay|concert|tour|beyoncé|drake/i.test(title)) {
-      return { main: "tickets", sub: "concerts" };
-    }
-    return { main: "tickets", sub: "concerts" };
-  }
 
   // Overig
   if (catSlug === "fashion-drops" || /supreme|palace|stüssy|fear of god|kith/i.test(title)) {

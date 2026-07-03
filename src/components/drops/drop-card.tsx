@@ -7,6 +7,7 @@ import type { EnrichedRelease } from "@/lib/data/enrich-releases";
 import { getDropMeta, type DropCategory } from "@/lib/drop";
 import { formatDrop, formatDropTime } from "@/lib/time";
 import { formatEur } from "@/lib/money";
+import { formatTicketSaleLine, formatTicketEventLine } from "@/lib/tickets/display";
 import { Badge, tierBadgeLabel } from "@/components/ui/badge";
 import { DropCountdown } from "@/components/drops/drop-countdown";
 import { DropDetailDrawer } from "@/components/drops/drop-detail-drawer";
@@ -56,6 +57,8 @@ export function DropCard({ release, compact, categoryAccent }: DropCardProps) {
   const mainCat = classifyRelease(release).main;
   const catBorder = categoryAccent ? MAIN_CATEGORIES[mainCat].border : "";
 
+  const ticketEvent = isTicket ? formatTicketEventLine(release) : null;
+
   return (
     <>
       <article
@@ -98,10 +101,14 @@ export function DropCard({ release, compact, categoryAccent }: DropCardProps) {
                   meta.dropTimeConfirmed ? "text-zinc-200" : "text-titan-muted"
                 )}
               >
-                {formatDrop(meta)}
+                {isTicket ? formatTicketSaleLine(release) : formatDrop(meta)}
               </span>
               <DropCountdown release={release} />
             </div>
+
+            {ticketEvent && (
+              <p className="text-[10px] text-titan-muted mt-1">{ticketEvent}</p>
+            )}
 
             <p className="text-xs text-profit font-medium mt-2">{coreStat}</p>
 

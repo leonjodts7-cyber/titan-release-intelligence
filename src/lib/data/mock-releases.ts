@@ -1,5 +1,7 @@
 import type { Release, ReleaseType, PriorityLevel, ReleaseStatus } from "@/types";
 import { enrichMockRelease } from "./release-mock-enrichment";
+import { normalizeDropTime, snapToSlot, type DropSlot } from "@/lib/drop-times";
+import { classifyRelease } from "@/lib/categories/taxonomy";
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -14,11 +16,36 @@ function wallToUtc(y: number, m: number, d: number, h: number, min: number, utcO
   return new Date(Date.UTC(y, m - 1, d, h - utcOffsetHours, min)).toISOString();
 }
 
-function fromNow(hours: number, minutes = 0): string {
+function fromNow(hours: number, _minutes = 0): string {
   const n = new Date();
-  n.setTime(n.getTime() + hours * 3_600_000 + minutes * 60_000);
+  n.setTime(n.getTime() + hours * 3_600_000);
   n.setSeconds(0, 0);
   return n.toISOString();
+}
+
+const MONTH_ABBR: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+};
+
+function parseEventDateFromTitle(title: string): string | null {
+  const m = title.match(/\(([A-Za-z]{3})\s+(\d{4})\)/);
+  if (!m) return null;
+  const month = MONTH_ABBR[m[1].toLowerCase()];
+  if (!month) return null;
+  return dateOnlyUtc(Number(m[2]), month, 15);
+}
+
+function slotForSpec(spec: MockSpec): DropSlot {
+  if (spec.type === "ticket") {
+    return spec.dropEventKind === "presale" ? "tm_presale" : "tm_general";
+  }
+  if (spec.tcgName) return "pokemon_center";
+  if (spec.categorySlug === "limited-sneakers" || spec.brand === "Nike" || spec.brand === "Jordan") {
+    return "snkrs";
+  }
+  if (spec.currency === "USD") return "us_drop";
+  return "raffle";
 }
 
 function dateOnlyUtc(y: number, m: number, d: number): string {
@@ -68,16 +95,24 @@ interface MockSpec {
   marketPrice?: number;
   status?: ReleaseStatus;
   officialUrl?: string;
+  eventDate?: string;
+}
+
+function inferTicketEventDate(spec: MockSpec): string | null {
+  if (spec.eventDate) return spec.eventDate;
+  const parsed = parseEventDateFromTitle(spec.title);
+  if (parsed) return parsed;
+  if (spec.releaseAt) return spec.releaseAt;
+  return null;
 }
 
 function buildRelease(id: number, spec: MockSpec, now: Date): Release {
-  const dropAt = spec.dropAt ?? spec.releaseAt ?? dateOnlyUtc(2026, 6, 1);
-  const dropConfirmed = spec.dropTimeConfirmed ?? (!spec.dateOnly && !isDateOnlyUtc(dropAt));
+  let dropAt = spec.dropAt ?? spec.releaseAt ?? dateOnlyUtc(2026, 6, 1);
   const dropTz = spec.dropTimezone ?? "Europe/Brussels";
-  const releaseTs = new Date(dropAt).getTime();
   const presaleOffset = spec.presaleDaysBefore ?? 14;
+  const eventDate = spec.type === "ticket" ? inferTicketEventDate(spec) : null;
 
-  return {
+  const draft: Release = {
     id: String(id),
     title: spec.title,
     slug: spec.slug,
@@ -103,9 +138,10 @@ function buildRelease(id: number, spec: MockSpec, now: Date): Release {
     release_ends_at: null,
     timezone: dropTz,
     drop_at: dropAt,
-    drop_time_confirmed: dropConfirmed,
+    drop_time_confirmed: spec.dropTimeConfirmed ?? false,
     drop_timezone: dropTz,
     drop_event_type: spec.dropEventKind ?? "release",
+    event_date: eventDate,
     price_min: spec.priceMin,
     price_max: spec.priceMax,
     currency: spec.currency,
@@ -139,6 +175,20 @@ function buildRelease(id: number, spec: MockSpec, now: Date): Release {
     msrp: spec.msrp ?? spec.priceMin,
     market_price: spec.marketPrice ?? null,
   };
+
+  const { main, sub } = classifyRelease(draft);
+  draft.main_category = main;
+  draft.sub_category = sub;
+
+  const normalized = normalizeDropTime(draft, dropAt, spec.dropTimeConfirmed);
+  dropAt = normalized.iso;
+
+  return {
+    ...draft,
+    drop_at: dropAt,
+    release_starts_at: dropAt,
+    drop_time_confirmed: normalized.confirmed,
+  };
 }
 
 function isDateOnlyUtc(iso: string): boolean {
@@ -148,9 +198,9 @@ function isDateOnlyUtc(iso: string): boolean {
 
 const MOCK_SPECS: MockSpec[] = [
   // Near-term drops (dynamic — for countdown QA)
-  { title: "Nike Dunk Low Retro — SNKRS NL", slug: "dunk-low-snkrs-nl-live", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 120, priceMax: 120, currency: "EUR", dropAt: fromNow(3, 20), dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", hype: 88, demand: 86, sellout: 92, priority: "EXTREME", brand: "Nike", stock: 8000, marketPrice: 195 },
-  { title: "Pokémon Surging Sparks Booster Bundle", slug: "surging-sparks-bundle-soon", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 32, priceMax: 32, currency: "EUR", dropAt: fromNow(18, 0), dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", dropEventKind: "release", hype: 72, demand: 70, sellout: 78, priority: "HIGH", tcgName: "Pokémon", setName: "Surging Sparks", productType: "bundle", sealed: true, msrp: 32, marketPrice: 48, stock: 12000 },
-  { title: "Taylor Swift — Antwerp (Presale)", slug: "taylor-antwerp-presale", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 89, priceMax: 295, currency: "EUR", dropAt: fromNow(22, 30), dropTimeConfirmed: true, dropTimezone: "Europe/Brussels", dropEventKind: "presale", hype: 95, demand: 96, sellout: 97, priority: "EXTREME", artist: "Taylor Swift", city: "Antwerp", country: "Belgium", countryCode: "BE", capacity: 23000 },
+  { title: "Nike Dunk Low Retro — SNKRS NL", slug: "dunk-low-snkrs-nl-live", category: "Limited Sneakers", categorySlug: "limited-sneakers", type: "product", priceMin: 120, priceMax: 120, currency: "EUR", dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", hype: 88, demand: 86, sellout: 92, priority: "EXTREME", brand: "Nike", stock: 8000, marketPrice: 195, officialUrl: "https://www.nike.com/launch" },
+  { title: "Pokémon Surging Sparks Booster Bundle", slug: "surging-sparks-bundle-soon", category: "TCG & Collectibles", categorySlug: "tcg-collectibles", type: "collectible", priceMin: 32, priceMax: 32, currency: "EUR", dropTimeConfirmed: true, dropTimezone: "Europe/Amsterdam", dropEventKind: "release", hype: 72, demand: 70, sellout: 78, priority: "HIGH", tcgName: "Pokémon", setName: "Surging Sparks", productType: "bundle", sealed: true, msrp: 32, marketPrice: 48, stock: 12000 },
+  { title: "Taylor Swift — Antwerp (Presale)", slug: "taylor-antwerp-presale", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 89, priceMax: 295, currency: "EUR", dropTimeConfirmed: true, dropTimezone: "Europe/Brussels", dropEventKind: "presale", hype: 95, demand: 96, sellout: 97, priority: "EXTREME", artist: "Taylor Swift", city: "Antwerp", country: "Belgium", countryCode: "BE", capacity: 23000, eventDate: dateOnlyUtc(2026, 6, 12) },
 
   // Concerts (20)
   { title: "Taylor Swift — London (Jun 2026)", slug: "taylor-swift-london-jun-2026", category: "Concert Tickets", categorySlug: "concert-tickets", type: "ticket", priceMin: 95, priceMax: 380, currency: "GBP", dropAt: wallToUtc(2026, 6, 12, 10, 0, 1), dropTimeConfirmed: true, dropTimezone: "Europe/London", dropEventKind: "general_sale", hype: 96, demand: 97, sellout: 98, priority: "EXTREME", artist: "Taylor Swift", city: "London", country: "United Kingdom", countryCode: "GB", capacity: 90000, officialUrl: "https://www.ticketmaster.co.uk/taylor-swift-london" },
@@ -251,25 +301,56 @@ const MOCK_SPECS: MockSpec[] = [
 export function generateMockReleases(): Release[] {
   const now = new Date();
   return MOCK_SPECS.map((spec, idx) => {
-    const dropAt = relativeDropAt(idx, now);
+    const dropAt = relativeDropAt(idx, now, spec);
     const enrichedSpec: MockSpec = {
       ...spec,
       dropAt,
-      dropTimeConfirmed: spec.dropTimeConfirmed ?? true,
       dropTimezone: spec.dropTimezone ?? "Europe/Brussels",
     };
     return enrichMockRelease(buildRelease(idx + 1, enrichedSpec, now), idx);
   });
 }
 
-function relativeDropAt(index: number, now: Date): string {
+function relativeDropAt(index: number, now: Date, spec: MockSpec): string {
+  const slot = slotForSpec(spec);
+
   if (index < 3) {
-    const hours = [3, 18, 22][index] ?? 6;
-    return new Date(now.getTime() + hours * 3_600_000).toISOString();
+    const hours = [28, 36, 32][index] ?? 40;
+    const target = new Date(now.getTime() + hours * 3_600_000);
+    return snapToSlot(target.toISOString(), slot, 0, spec.dropTimeConfirmed ?? true).iso;
   }
+
+  if (spec.dropAt) return spec.dropAt;
+  if (spec.releaseAt) {
+    const base = spec.releaseAt;
+    const draft = {
+      id: String(index),
+      title: spec.title,
+      slug: spec.slug,
+      release_type: spec.type,
+      drop_event_type: spec.dropEventKind,
+      currency: spec.currency,
+      release_categories: { name: spec.category, slug: spec.categorySlug },
+      tcg_name: spec.tcgName ?? null,
+      brands: spec.brand ? { name: spec.brand } : null,
+    } as Release;
+    return normalizeDropTime(draft, base, spec.dropTimeConfirmed).iso;
+  }
+
   const days = 2 + Math.floor((index / MOCK_SPECS.length) * 175);
-  const hour = [9, 10, 15][index % 3] ?? 9;
   const d = new Date(now);
   d.setUTCDate(d.getUTCDate() + days);
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hour - 2, 0)).toISOString();
+  const base = dateOnlyUtc(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+  const draft = {
+    id: String(index),
+    title: spec.title,
+    slug: spec.slug,
+    release_type: spec.type,
+    drop_event_type: spec.dropEventKind,
+    currency: spec.currency,
+    release_categories: { name: spec.category, slug: spec.categorySlug },
+    tcg_name: spec.tcgName ?? null,
+    brands: spec.brand ? { name: spec.brand } : null,
+  } as Release;
+  return normalizeDropTime(draft, base, false).iso;
 }

@@ -10,7 +10,7 @@ UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE s
 UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE slug = 'taylor-swift-london-jun-2026';
 UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE slug = 'coldplay-paris-jul-2026';
 UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE slug = 'drake-toronto-aug-2026';
-UPDATE releases SET main_category = 'schoenen', sub_category = 'collabs' WHERE slug = 'travis-scott-houston-sep-2026';
+UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE slug = 'travis-scott-houston-sep-2026';
 UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE slug = 'beyonce-la-oct-2026';
 UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE slug = 'bad-bunny-madrid-nov-2026';
 UPDATE releases SET main_category = 'tickets', sub_category = 'concerts' WHERE slug = 'billie-eilish-berlin-dec-2026';

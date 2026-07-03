@@ -25,6 +25,7 @@ import {
   type MainCategory,
   classifyRelease,
 } from "@/lib/categories/taxonomy";
+import { formatTicketEventLine } from "@/lib/tickets/display";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -81,19 +82,24 @@ function DayDrawer({
                 const hour = dropHourLabel(getDropAt(r), Boolean(r.drop_time_confirmed));
                 const tier = tierShortLabel(r.opportunity_action);
                 const isTop = tier === "TOP" || tier === "MUST WATCH";
+                const eventLine = formatTicketEventLine(r);
                 return (
                   <li key={r.id}>
                     <Link
                       href={`/dashboard/drops/${r.id}`}
                       onClick={onClose}
                       className={cn(
-                        "block rounded-lg border px-3 py-2 text-xs hover:border-titan-accent/50",
-                        MAIN_CATEGORIES[main].chip
+                        "block rounded-lg border px-3 py-2 text-xs hover:border-titan-accent/50 border-l-2 bg-titan-bg/60",
+                        MAIN_CATEGORIES[main].border
                       )}
+                      title={eventLine ?? r.title}
                     >
                       <span className="font-medium">{r.title}</span>
                       {isTop && <Flame className="inline w-3 h-3 ml-1 text-orange-400" />}
                       {hour && <span className="ml-2 font-mono text-[10px] opacity-80">{hour}</span>}
+                      {eventLine && (
+                        <span className="block text-[10px] text-titan-muted mt-0.5">{eventLine}</span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -209,17 +215,18 @@ export function MegaCalendar({ releases }: MegaCalendarProps) {
       </p>
 
       <div className="flex flex-wrap gap-2 items-center text-xs">
+        <span className="text-[10px] text-titan-muted mr-1">{t("calendar.legend")}:</span>
         {MAIN_KEYS.map((main) => (
           <button
             key={main}
             type="button"
             onClick={() => toggleMain(main)}
             className={cn(
-              "px-2 py-1 rounded border text-[10px] transition-opacity",
-              MAIN_CATEGORIES[main].chip,
+              "inline-flex items-center gap-1.5 px-2 py-1 rounded border text-[10px] transition-opacity border-titan-border",
               !mainFilters.has(main) && "opacity-30"
             )}
           >
+            <span className={cn("w-2 h-2 rounded-full shrink-0", MAIN_CATEGORIES[main].dot)} />
             {MAIN_CATEGORIES[main].label}
           </button>
         ))}
@@ -244,14 +251,6 @@ export function MegaCalendar({ releases }: MegaCalendarProps) {
           />
           {t("drops.confirmedOnly")}
         </label>
-      </div>
-
-      <div className="flex flex-wrap gap-2 text-[10px]">
-        {MAIN_KEYS.map((main) => (
-          <span key={main} className={cn("px-2 py-0.5 rounded border", MAIN_CATEGORIES[main].chip)}>
-            {MAIN_CATEGORIES[main].label}
-          </span>
-        ))}
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -314,6 +313,10 @@ export function MegaCalendar({ releases }: MegaCalendarProps) {
                 const items = releasesForDay(filtered, day);
                 const visible = items.slice(0, MAX_CHIPS);
                 const extra = items.length - visible.length;
+                const hasTop = items.some((r) => {
+                  const tier = tierShortLabel(r.opportunity_action);
+                  return tier === "TOP" || tier === "MUST WATCH";
+                });
 
                 return (
                   <div
@@ -322,7 +325,8 @@ export function MegaCalendar({ releases }: MegaCalendarProps) {
                       "bg-titan-surface min-h-[96px] p-1 flex flex-col",
                       !inMonth && "opacity-40",
                       past && inMonth && "opacity-50",
-                      isToday(day) && "ring-1 ring-inset ring-titan-accent/60"
+                      isToday(day) && "ring-1 ring-inset ring-titan-accent/60",
+                      hasTop && inMonth && "bg-orange-500/5 ring-1 ring-inset ring-orange-500/20"
                     )}
                   >
                     <span
@@ -340,15 +344,16 @@ export function MegaCalendar({ releases }: MegaCalendarProps) {
                         const tier = tierShortLabel(r.opportunity_action);
                         const isTop = tier === "TOP" || tier === "MUST WATCH";
                         const short = r.title.length > 16 ? `${r.title.slice(0, 14)}…` : r.title;
+                        const eventLine = formatTicketEventLine(r);
                         return (
                           <Link
                             key={r.id}
                             href={`/dashboard/drops/${r.id}`}
                             className={cn(
-                              "block text-[9px] leading-tight truncate rounded px-1 py-0.5 border",
-                              MAIN_CATEGORIES[main].chip
+                              "block text-[9px] leading-tight truncate rounded px-1 py-0.5 border border-titan-border/40 bg-titan-bg/70 border-l-2",
+                              MAIN_CATEGORIES[main].border
                             )}
-                            title={r.title}
+                            title={eventLine ? `${r.title} · ${eventLine}` : r.title}
                           >
                             {isTop && <Flame className="inline w-2.5 h-2.5 mr-0.5 text-orange-400" />}
                             {short}
